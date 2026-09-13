@@ -11,6 +11,10 @@
  *     await connectDB();   // if this throws, startServer() catches it.
  */
 
+const dns = require('dns');
+// Set public DNS resolvers (Google & Cloudflare) to prevent ESERVFAIL on mongodb+srv SRV lookups
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const mongoose = require('mongoose');
 
 const connectDB = async () => {

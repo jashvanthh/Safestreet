@@ -15,6 +15,8 @@
  */
 
 require('dotenv').config();            // Load .env before anything else
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']); // Fix querySrv ESERVFAIL with Atlas on Windows
 const http = require('http');
 const connectDB = require('./config/db');
 const { initGridFS } = require('./services/gridfsService');
