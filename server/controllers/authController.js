@@ -151,4 +151,52 @@ const getMe = async (req, res) => {
   });
 };
 
-module.exports = { register, login, getMe };
+// ── PATCH /api/auth/profile ────────────────────────────────────────────────────
+const updateProfile = async (req, res, next) => {
+  try {
+    const { notificationLocation, notificationRadius } = req.body;
+    const updates = {};
+
+    // Validate and accept notificationLocation
+    if (notificationLocation) {
+      const { type, coordinates } = notificationLocation;
+      if (
+        type !== 'Point' ||
+        !Array.isArray(coordinates) ||
+        coordinates.length !== 2 ||
+        isNaN(coordinates[0]) ||
+        isNaN(coordinates[1])
+      ) {
+        const err = new Error('Invalid location format'); err.statusCode = 400; return next(err);
+      }
+      updates.notificationLocation = { type: 'Point', coordinates };
+    }
+
+    // Validate and accept notificationRadius (1–50 km)
+    if (notificationRadius !== undefined) {
+      const radius = parseFloat(notificationRadius);
+      if (isNaN(radius) || radius < 0.5 || radius > 50) {
+        const err = new Error('Radius must be between 0.5 and 50 km'); err.statusCode = 400; return next(err);
+      }
+      updates.notificationRadius = radius;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      const err = new Error('Nothing to update'); err.statusCode = 400; return next(err);
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { user },
+    });
+  } catch (err) { next(err); }
+};
+
+module.exports = { register, login, getMe, updateProfile };

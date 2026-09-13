@@ -12,7 +12,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { register, login, getMe } = require('../controllers/authController');
+const { register, login, getMe, updateProfile } = require('../controllers/authController');
 const { requireAuth } = require('../middleware/authMiddleware');
 
 // POST /api/auth/register  — public
@@ -23,5 +23,8 @@ router.post('/login', login);
 
 // GET  /api/auth/me        — requires valid JWT
 router.get('/me', requireAuth, getMe);
+
+// PATCH /api/auth/profile  — update notification location + radius
+router.patch('/profile', requireAuth, updateProfile);
 
 module.exports = router;
