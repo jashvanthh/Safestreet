@@ -52,6 +52,7 @@ const Navbar = () => {
               <Link to="/"           className={isActive('/')}>Home</Link>
               <Link to="/map"        className={isActive('/map')}>Map</Link>
               <Link to="/report"     className={isActive('/report')}>Report</Link>
+              <Link to="/digest"     className={isActive('/digest')}>Digest</Link>
               <NotificationBell />
 
               {/* Admin-only link */}

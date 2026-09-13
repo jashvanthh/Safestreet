@@ -49,31 +49,31 @@
   - [x] `FilterBar` changes fetch params; data comes from backend not client-side
   - [x] Map viewport `bounds` param used to limit response
 
-- [ ] **Phase 7** — Admin Dashboard + Status Workflow
-  - [ ] `AdminDashboard` page shows aggregation stats (count by category/status)
-  - [ ] `PATCH /api/incidents/:id/status` requires admin JWT (non-admin gets 403)
-  - [ ] `AdminRoute` blocks non-admin in React routing
-  - [ ] Status badge updates reflected in UI
+- [x] **Phase 7** — Admin Dashboard + Status Workflow
+  - [x] `AdminDashboard` page shows aggregation stats (count by category/status)
+  - [x] `PATCH /api/incidents/:id/status` requires admin JWT (non-admin gets 403)
+  - [x] `AdminRoute` blocks non-admin in React routing
+  - [x] Status badge updates reflected in UI
 
-- [ ] **Phase 8** — Socket.IO Proximity Notifications
-  - [ ] `SocketContext` wraps app; socket connects with JWT in handshake
-  - [ ] Server maps `userId → socket room` on connection
-  - [ ] Incident creation triggers `$nearSphere` query against `User.notificationLocation`
-  - [ ] Matched users get `Notification` doc + socket emit
-  - [ ] `NotificationBell` shows unread count; `Notifications` page lists them
-  - [ ] Out-of-radius account does NOT receive notification (verified in browser)
+- [x] **Phase 8** — Socket.IO Proximity Notifications
+  - [x] `SocketContext` wraps app; socket connects with JWT in handshake
+  - [x] Server maps `userId → socket room` on connection
+  - [x] Incident creation triggers `$nearSphere` query against `User.notificationLocation`
+  - [x] Matched users get `Notification` doc + socket emit
+  - [x] `NotificationBell` shows unread count; `Notifications` page lists them
+  - [x] Out-of-radius account does NOT receive notification (verified in browser)
 
-- [ ] **Phase 9** — GridFS Polish
-  - [ ] Upload validates: MIME type (magic bytes, not just extension), max 5 MB
-  - [ ] Retrieval streams correctly, no memory issues
-  - [ ] Fallback disk storage removed (or kept + documented as deliberate)
+- [x] **Phase 9** — GridFS Polish
+  - [x] Upload validates: MIME type (magic bytes, not just extension), max 5 MB
+  - [x] Retrieval streams correctly, no memory issues
+  - [x] Fallback disk storage removed (or kept + documented as deliberate)
 
-- [ ] **Phase 10** — Weekly Digest
-  - [ ] `node-cron` job runs Sunday midnight
-  - [ ] Digest aggregated per user's `notificationRadius` neighborhood
-  - [ ] `Digest` document saved to DB
-  - [ ] Email sent via Nodemailer (or logged if SMTP not configured)
-  - [ ] `GET /api/digest/latest` returns latest for authenticated user
+- [x] **Phase 10** — Weekly Digest
+  - [x] `node-cron` job runs Sunday midnight
+  - [x] Digest aggregated per user's `notificationRadius` neighborhood
+  - [x] `Digest` document saved to DB
+  - [x] Email sent via Nodemailer (or logged if SMTP not configured)
+  - [x] `GET /api/digest/latest` returns latest for authenticated user
 
 - [ ] **Phase 11** — Testing + Security + Responsive UI
   - [ ] Jest + Supertest + `mongodb-memory-server` installed

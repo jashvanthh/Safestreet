@@ -24,6 +24,8 @@ const app = require('./app');
 
 // ── Phase 8: Socket.IO ────────────────────────────────────────────────────────────
 const { initSocket } = require('./services/notificationService');
+// ── Phase 10: Weekly Digest Cron ──────────────────────────────────────────────────
+const { startDigestJob } = require('./jobs/weeklyDigestJob');
 // ──────────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 5000;
@@ -36,6 +38,9 @@ async function startServer() {
   // initSocket attaches Socket.IO to the SAME httpServer as Express.
   // They share port 5001. Socket.IO intercepts requests to /socket.io/*
   initSocket(httpServer);
+
+  // Initialize weekly safety digest cron job (Phase 10)
+  startDigestJob();
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
