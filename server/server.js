@@ -1,0 +1,44 @@
+/**
+ * server.js — Entry point
+ *
+ * Why separate server.js from app.js?
+ *   app.js exports the configured Express application (middleware, routes).
+ *   server.js is responsible only for:
+ *     1. Loading env vars
+ *     2. Connecting to MongoDB
+ *     3. Creating the HTTP server
+ *     4. Attaching Socket.IO
+ *     5. Starting the listener on PORT
+ *
+ *   This separation means app.js can be imported by Jest/Supertest in tests
+ *   WITHOUT actually binding to a port or connecting to a real database.
+ */
+
+require('dotenv').config();            // Load .env before anything else
+const http = require('http');
+const connectDB = require('./config/db');
+const app = require('./app');
+
+// ── Phase 8: Socket.IO will be initialized here ──────────────────────────────
+// const { initSocket } = require('./services/notificationService');
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PORT = process.env.PORT || 5000;
+
+async function startServer() {
+  await connectDB();                   // Fail fast if DB is unreachable
+
+  const httpServer = http.createServer(app);
+
+  // Phase 8: initSocket(httpServer);
+
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});

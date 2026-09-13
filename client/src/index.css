@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/*
+ * index.css — Global styles + design tokens
+ *
+ * Why @import "tailwindcss" instead of @tailwind directives?
+ *   Tailwind v4 uses a single @import statement with the @tailwindcss/vite plugin.
+ *   The old @tailwind base/components/utilities pattern is v3.
+ *
+ * Custom CSS variables (design tokens) live here.
+ * These work alongside Tailwind — use Tailwind classes for layout/spacing,
+ * and these variables for brand colors in custom components.
+ */
+
+:root {
+  --color-primary: #3b82f6;     /* blue-500 */
+  --color-primary-dark: #1d4ed8;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+  --color-surface: #1e293b;     /* slate-800 */
+  --color-bg: #0f172a;          /* slate-900 */
+  --color-text: #f1f5f9;        /* slate-100 */
+  --color-muted: #94a3b8;       /* slate-400 */
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+}
+
+/* Leaflet map container needs explicit height */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+}
