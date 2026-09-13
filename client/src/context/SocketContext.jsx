@@ -61,8 +61,13 @@ export const SocketProvider = ({ children }) => {
       .catch(() => {});  // Non-fatal — socket will still work
 
     // ── Connect Socket.IO ─────────────────────────────────────────────────
-    const newSocket = io('/', {
-      auth: { token: localStorage.getItem(TOKEN_KEY) },
+    // In local dev, connect directly to port 5001 or fallback to root origin
+    const socketServerUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '/');
+
+    const newSocket = io(socketServerUrl, {
+      auth: { token: token || localStorage.getItem(TOKEN_KEY) },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
     });
