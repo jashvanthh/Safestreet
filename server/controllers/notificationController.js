@@ -13,10 +13,14 @@
  */
 
 const Notification = require('../models/Notification');
+const { syncNotificationsForUser } = require('../services/notificationService');
 
 // ── GET /api/notifications ─────────────────────────────────────────────────
 const getNotifications = async (req, res, next) => {
   try {
+    // Sync any existing incidents within the user's alert zone into notifications
+    await syncNotificationsForUser(req.user);
+
     const { page = 1, limit = 20 } = req.query;
     const pageNum  = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, parseInt(limit, 10) || 20);
@@ -51,6 +55,8 @@ const getNotifications = async (req, res, next) => {
 // Lightweight endpoint for the NotificationBell to poll on mount
 const getUnreadCount = async (req, res, next) => {
   try {
+    await syncNotificationsForUser(req.user);
+
     const count = await Notification.countDocuments({
       recipient: req.user._id,
       isRead:    false,

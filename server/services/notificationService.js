@@ -41,7 +41,7 @@ const { Server }   = require('socket.io');
 const jwt          = require('jsonwebtoken');
 const User         = require('../models/User');
 const Notification = require('../models/Notification');
-const { findUsersNear } = require('./geoService');
+const { findUsersNear, findIncidentsNear } = require('./geoService');
 
 let io = null;  // Module-level Socket.IO instance — initialized once in startServer()
 
@@ -165,4 +165,53 @@ const notifyNearbyUsers = async (incident) => {
   }
 };
 
-module.exports = { initSocket, notifyNearbyUsers };
+/**
+ * Synchronizes incidents in the user's notification radius into Notification documents.
+ * Ensures that if incidents already exist in the area (or after setting/updating home location),
+ * the user's notification bell and list populate with all relevant safety alerts.
+ *
+ * @param {Object} user - User document or req.user
+ * @returns {Promise<number>}
+ */
+const syncNotificationsForUser = async (user) => {
+  try {
+    const coords = user.notificationLocation?.coordinates;
+    if (!coords || (coords[0] === 0 && coords[1] === 0)) return 0;
+
+    const [uLng, uLat] = coords;
+    const radiusKm = user.notificationRadius || 2;
+
+    const nearbyIncidents = await findIncidentsNear(uLng, uLat, radiusKm);
+    let count = 0;
+
+    for (const incident of nearbyIncidents) {
+      // Check if notification already exists for this user and incident
+      const existing = await Notification.findOne({
+        recipient: user._id,
+        incident:  incident._id,
+      });
+
+      if (!existing) {
+        await Notification.create({
+          recipient: user._id,
+          incident:  incident._id,
+          message:   `Incident nearby in your zone: "${incident.title}"`,
+          isRead:    false,
+          createdAt: incident.createdAt || new Date(),
+        });
+        count++;
+      }
+    }
+
+    if (count > 0) {
+      console.log(`🔔 Synced ${count} nearby incident notification(s) for ${user.email || user._id}`);
+    }
+    return count;
+  } catch (err) {
+    console.error('Error syncing notifications for user:', err.message);
+    return 0;
+  }
+};
+
+module.exports = { initSocket, notifyNearbyUsers, syncNotificationsForUser };
+

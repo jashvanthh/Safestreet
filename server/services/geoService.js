@@ -82,7 +82,7 @@ const findUsersNear = async (lng, lat, radiusKm) => {
         $maxDistance: radiusKm * 1000,
       },
     },
-  }).select('_id name email notificationRadius');
+  }).select('_id name email notificationRadius notificationLocation');
 };
 
 module.exports = { findIncidentsNear, findUsersNear };

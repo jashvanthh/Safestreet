@@ -27,6 +27,7 @@
 const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const { isValidEmail, isValidPassword } = require('../utils/validators');
+const { syncNotificationsForUser }      = require('../services/notificationService');
 
 // ── POST /api/auth/register ──────────────────────────────────────────────────
 const register = async (req, res, next) => {
@@ -189,6 +190,11 @@ const updateProfile = async (req, res, next) => {
       req.user._id,
       updates,
       { new: true, runValidators: true }
+    );
+
+    // Sync any existing incidents within the newly updated alert radius
+    syncNotificationsForUser(user).catch((err) =>
+      console.error('Error syncing notifications on profile update:', err.message)
     );
 
     res.status(200).json({
