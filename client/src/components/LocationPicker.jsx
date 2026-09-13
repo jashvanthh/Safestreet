@@ -22,7 +22,7 @@
  *   value    — { lat: number, lng: number } | null
  *   onChange — (coords: { lat, lng }) => void
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -39,20 +39,23 @@ L.Icon.Default.mergeOptions({
 const MapClickHandler = ({ onLocationSelect }) => {
   useMapEvents({
     click(e) {
-      onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (e && e.latlng) {
+        onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
     },
   });
   return null;
 };
 
-// ── Inner: smoothly pans map to new marker position ─────────────────────────
-const FlyToLocation = ({ position }) => {
+// ── Inner: pans map to position only when requested (e.g. geolocation) ───────
+const FlyToLocation = ({ position, shouldFly, onFlown }) => {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-      map.flyTo([position.lat, position.lng], 15, { duration: 1.2 });
+    if (position && shouldFly) {
+      map.flyTo([position.lat, position.lng], 15, { duration: 1.0 });
+      if (onFlown) onFlown();
     }
-  }, [position, map]);
+  }, [position, shouldFly, map, onFlown]);
   return null;
 };
 
@@ -60,6 +63,16 @@ const FlyToLocation = ({ position }) => {
 const LocationPicker = ({ value, onChange }) => {
   const DEFAULT_CENTER = [20.5937, 78.9629];  // India center
   const DEFAULT_ZOOM   = 5;
+  const [shouldFly, setShouldFly] = useState(false);
+  const initialFlown = useRef(false);
+
+  // Fly once on mount if an initial value was provided (e.g. Profile edit)
+  useEffect(() => {
+    if (value && !initialFlown.current) {
+      initialFlown.current = true;
+      setShouldFly(true);
+    }
+  }, [value]);
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
@@ -67,8 +80,11 @@ const LocationPicker = ({ value, onChange }) => {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => onChange({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      ()    => alert('Location access denied. Click on the map instead.')
+      (pos) => {
+        setShouldFly(true);
+        onChange({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => alert('Location access denied. Click on the map instead.')
     );
   };
 
@@ -104,7 +120,11 @@ const LocationPicker = ({ value, onChange }) => {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <MapClickHandler onLocationSelect={onChange} />
-          <FlyToLocation position={value} />
+          <FlyToLocation
+            position={value}
+            shouldFly={shouldFly}
+            onFlown={() => setShouldFly(false)}
+          />
           {value && <Marker position={[value.lat, value.lng]} />}
         </MapContainer>
       </div>

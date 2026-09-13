@@ -15,6 +15,18 @@ import 'leaflet/dist/leaflet.css';   // Must come before index.css — Leaflet m
 import './index.css';
 import App from './App.jsx';
 
+// Suppress unhandled errors from browser extensions / PerformanceObserver (e.g. Chrome reportAllChanges / startTime)
+window.addEventListener('error', (event) => {
+  if (
+    event?.message?.includes('startTime') ||
+    event?.filename?.includes('VM') ||
+    event?.error?.stack?.includes('reportAllChanges')
+  ) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
+});
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
