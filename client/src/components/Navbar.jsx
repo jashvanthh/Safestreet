@@ -38,10 +38,11 @@ const Navbar = () => {
 
           {/* Brand */}
           <Link to="/" className="flex items-center gap-2 group">
-            <span className="text-2xl">🛡️</span>
-            <span className="text-white font-bold text-lg tracking-tight group-hover:text-blue-400 transition-colors">
-              SafeStreet
-            </span>
+            <img
+              src="/logo.png"
+              alt="SafeStreet"
+              className="h-9 w-auto object-contain"
+            />
           </Link>
 
           {/* Nav links */}

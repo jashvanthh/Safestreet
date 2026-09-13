@@ -22,7 +22,7 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 const authRoutes     = require('./routes/auth');
 const incidentRoutes = require('./routes/incidents');
 // const notificationRoutes = require('./routes/notifications');
-// const adminRoutes      = require('./routes/admin');
+const adminRoutes    = require('./routes/admin');
 // const digestRoutes     = require('./routes/digest');
 const fileRoutes     = require('./routes/files');
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth',      authRoutes);
 app.use('/api/incidents', incidentRoutes);
 // app.use('/api/notifications',  notificationRoutes);
-// app.use('/api/admin',          adminRoutes);
+app.use('/api/admin',     adminRoutes);
 // app.use('/api/digest',         digestRoutes);
 app.use('/api/files',     fileRoutes);
 

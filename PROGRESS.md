@@ -36,18 +36,18 @@
   - [x] All page components exist (even as stubs)
   - [x] Login / Register pages functional end-to-end
 
-- [ ] **Phase 5** — Reporting + Leaflet Picker
-  - [ ] `IncidentForm` with category, title, description, location picker, photo upload
-  - [ ] `LocationPicker` (Leaflet click-to-pin + geolocation fallback)
-  - [ ] Multer + GridFS upload middleware
-  - [ ] `POST /api/incidents` accepts `multipart/form-data`, stores `photoFileId`
-  - [ ] `GET /api/files/:fileId` returns image with correct `Content-Type`
+- [x] **Phase 5** — Reporting + Leaflet Picker
+  - [x] `IncidentForm` with category, title, description, location picker, photo upload
+  - [x] `LocationPicker` (Leaflet click-to-pin + geolocation fallback)
+  - [x] Multer + GridFS upload middleware
+  - [x] `POST /api/incidents` accepts `multipart/form-data`, stores `photoFileId`
+  - [x] `GET /api/files/:fileId` returns image with correct `Content-Type`
 
-- [ ] **Phase 6** — Live Map + Heatmap + Filters
-  - [ ] `MapView` renders incident pins with popups
-  - [ ] `HeatmapLayer` renders leaflet.heat layer from `/api/incidents/heatmap`
-  - [ ] `FilterBar` changes fetch params; data comes from backend not client-side
-  - [ ] Map viewport `bounds` param used to limit response
+- [x] **Phase 6** — Live Map + Heatmap + Filters
+  - [x] `MapPage` renders incident pins with popups
+  - [x] `HeatmapLayer` renders leaflet.heat layer from `/api/incidents/heatmap`
+  - [x] `FilterBar` changes fetch params; data comes from backend not client-side
+  - [x] Map viewport `bounds` param used to limit response
 
 - [ ] **Phase 7** — Admin Dashboard + Status Workflow
   - [ ] `AdminDashboard` page shows aggregation stats (count by category/status)

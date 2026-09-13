@@ -63,7 +63,7 @@ const Login = () => {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-5xl block mb-3">🛡️</span>
+          <img src="/logo.png" alt="SafeStreet" className="h-16 w-auto mx-auto mb-3 object-contain" />
           <h1 className="text-3xl font-bold text-white mb-1">Welcome back</h1>
           <p className="text-slate-400 text-sm">Sign in to SafeStreet</p>
         </div>

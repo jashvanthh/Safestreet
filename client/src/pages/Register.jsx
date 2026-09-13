@@ -92,7 +92,7 @@ const Register = () => {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-5xl block mb-3">🏘️</span>
+          <img src="/logo.png" alt="SafeStreet" className="h-16 w-auto mx-auto mb-3 object-contain" />
           <h1 className="text-3xl font-bold text-white mb-1">Join SafeStreet</h1>
           <p className="text-slate-400 text-sm">Help keep your neighborhood safe</p>
         </div>
