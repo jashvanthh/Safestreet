@@ -5,12 +5,12 @@
 
 ## Phases
 
-- [ ] **Phase 1** — Setup, Git, architecture
+- [x] **Phase 1** — Setup, Git, architecture
   - [x] Repo initialized (`git init`)
   - [x] `.gitignore`, `.env.example` committed
   - [x] Folder scaffolds created (server + client)
   - [x] `PROGRESS.md` created
-  - [ ] First commit pushed to remote (GitHub/GitLab)
+  - [ ] First commit pushed to remote (GitHub/GitLab) — push manually: `git remote add origin <url> && git push -u origin main`
 
 - [ ] **Phase 2** — Backend + Mongo + Auth
   - [ ] `server/` dependencies installed (`express`, `mongoose`, `bcryptjs`, `jsonwebtoken`, `dotenv`, `cors`, `helmet`)
