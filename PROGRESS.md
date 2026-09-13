@@ -12,22 +12,22 @@
   - [x] `PROGRESS.md` created
   - [ ] First commit pushed to remote (GitHub/GitLab) — push manually: `git remote add origin <url> && git push -u origin main`
 
-- [ ] **Phase 2** — Backend + Mongo + Auth
-  - [ ] `server/` dependencies installed (`express`, `mongoose`, `bcryptjs`, `jsonwebtoken`, `dotenv`, `cors`, `helmet`)
-  - [ ] MongoDB Atlas cluster + `MONGO_URI` in `.env`
-  - [ ] `User` model with `2dsphere` index
-  - [ ] `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` all tested in Postman
-  - [ ] JWT auth middleware protecting `/me`
-  - [ ] Centralized error middleware returning `{ success: false, message }` shape
+- [x] **Phase 2** — Backend + Mongo + Auth
+  - [x] `server/` dependencies installed (`express`, `mongoose`, `bcryptjs`, `jsonwebtoken`, `dotenv`, `cors`, `helmet`)
+  - [x] MongoDB Atlas cluster + `MONGO_URI` in `.env`
+  - [x] `User` model with `2dsphere` index
+  - [x] `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` all tested (curl)
+  - [x] JWT auth middleware protecting `/me`
+  - [x] Centralized error middleware returning `{ success: false, message }` shape
 
-- [ ] **Phase 3** — Incident CRUD + Geospatial
-  - [ ] `Incident` model with `2dsphere` index on `location`
-  - [ ] `POST /api/incidents` (no photo yet — add multipart in Phase 5)
-  - [ ] `GET /api/incidents` with pagination + filters
-  - [ ] `GET /api/incidents/nearby` returns correct results for seeded test coords
-  - [ ] `GET /api/incidents/heatmap` returns `[lat, lng, weight]` array
-  - [ ] `GET /api/incidents/:id`
-  - [ ] Anonymous stripping tested (no `reportedBy` in response when `isAnonymous: true`)
+- [x] **Phase 3** — Incident CRUD + Geospatial
+  - [x] `Incident` model with `2dsphere` index on `location`
+  - [x] `POST /api/incidents` (no photo yet — add multipart in Phase 5)
+  - [x] `GET /api/incidents` with pagination + filters (category, status, from, to, bounds)
+  - [x] `GET /api/incidents/nearby` returns correct results for seeded test coords
+  - [x] `GET /api/incidents/heatmap` returns `[lat, lng, weight]` array
+  - [x] `GET /api/incidents/:id`
+  - [x] Anonymous stripping tested (no `reportedBy` in response when `isAnonymous: true`)
 
 - [ ] **Phase 4** — React Scaffold + Routing + Auth
   - [ ] `client/` created with Vite + React + Tailwind
