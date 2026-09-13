@@ -19,12 +19,12 @@ const helmet = require('helmet');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 // ── Route imports (uncommented as each phase is built) ───────────────────────
-const authRoutes     = require('./routes/auth');
-const incidentRoutes = require('./routes/incidents');
-// const notificationRoutes = require('./routes/notifications');
-const adminRoutes    = require('./routes/admin');
+const authRoutes         = require('./routes/auth');
+const incidentRoutes     = require('./routes/incidents');
+const notificationRoutes = require('./routes/notifications');
+const adminRoutes        = require('./routes/admin');
 // const digestRoutes     = require('./routes/digest');
-const fileRoutes     = require('./routes/files');
+const fileRoutes         = require('./routes/files');
 // ─────────────────────────────────────────────────────────────────────────────
 
 const app = express();
@@ -49,12 +49,12 @@ app.get('/health', (_req, res) => {
 });
 
 // ── API Routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',      authRoutes);
-app.use('/api/incidents', incidentRoutes);
-// app.use('/api/notifications',  notificationRoutes);
-app.use('/api/admin',     adminRoutes);
+app.use('/api/auth',          authRoutes);
+app.use('/api/incidents',     incidentRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin',         adminRoutes);
 // app.use('/api/digest',         digestRoutes);
-app.use('/api/files',     fileRoutes);
+app.use('/api/files',         fileRoutes);
 
 // ── Centralized error handler (must be last) ─────────────────────────────────
 app.use(errorMiddleware);

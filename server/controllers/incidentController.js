@@ -25,6 +25,7 @@
 const Incident              = require('../models/Incident');
 const { findIncidentsNear } = require('../services/geoService');
 const { deleteFile }        = require('../services/gridfsService');
+const { notifyNearbyUsers } = require('../services/notificationService');
 const { isValidCoordinates, isValidCategory } = require('../utils/validators');
 
 // ── Helper: strip reportedBy from response when isAnonymous ──────────────────
@@ -83,8 +84,12 @@ const createIncident = async (req, res, next) => {
 
     const incident = await Incident.create(incidentData);
 
-    // Phase 8: after creation, trigger proximity notifications here
-    // await notificationService.notifyNearbyUsers(incident);
+    // Trigger proximity notifications — async, non-blocking.
+    // We do NOT await this: a notification failure must NEVER fail the report.
+    // Fire-and-forget with its own error handling inside notifyNearbyUsers().
+    notifyNearbyUsers(incident).catch((err) =>
+      console.error('Notification error (non-fatal):', err.message)
+    );
 
     res.status(201).json({
       success: true,

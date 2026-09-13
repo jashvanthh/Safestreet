@@ -20,9 +20,9 @@ const connectDB = require('./config/db');
 const { initGridFS } = require('./services/gridfsService');
 const app = require('./app');
 
-// ── Phase 8: Socket.IO will be initialized here ──────────────────────────────
-// const { initSocket } = require('./services/notificationService');
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Phase 8: Socket.IO ────────────────────────────────────────────────────────────
+const { initSocket } = require('./services/notificationService');
+// ──────────────────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 5000;
 
@@ -31,7 +31,9 @@ async function startServer() {
   initGridFS();          // Must run AFTER connectDB — needs mongoose.connection.db
 
   const httpServer = http.createServer(app);
-  // Phase 8: initSocket(httpServer);
+  // initSocket attaches Socket.IO to the SAME httpServer as Express.
+  // They share port 5001. Socket.IO intercepts requests to /socket.io/*
+  initSocket(httpServer);
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);

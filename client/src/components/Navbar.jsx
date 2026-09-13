@@ -14,6 +14,7 @@
  */
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -51,10 +52,7 @@ const Navbar = () => {
               <Link to="/"           className={isActive('/')}>Home</Link>
               <Link to="/map"        className={isActive('/map')}>Map</Link>
               <Link to="/report"     className={isActive('/report')}>Report</Link>
-              <Link to="/notifications" className={isActive('/notifications')}>
-                {/* Phase 8: swap this text for <NotificationBell /> */}
-                Alerts
-              </Link>
+              <NotificationBell />
 
               {/* Admin-only link */}
               {user.role === 'admin' && (
