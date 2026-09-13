@@ -22,7 +22,7 @@ import useAuth from '../hooks/useAuth';
 import LocationPicker from '../components/LocationPicker';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
 
   // Location state: we display in Leaflet [lat,lng] order
   const [location, setLocation] = useState(null);   // { lat, lng }
@@ -55,13 +55,18 @@ const Profile = () => {
     setIsSaving(true);
 
     try {
-      await api.patch('/auth/profile', {
+      const res = await api.patch('/auth/profile', {
         notificationLocation: {
           type:        'Point',
           coordinates: [location.lng, location.lat],  // GeoJSON: [lng, lat]
         },
         notificationRadius: radius,
       });
+
+      if (updateUser && res.data?.data?.user) {
+        updateUser(res.data.data.user);
+      }
+
       setSuccess(`Settings saved! You will receive alerts for incidents within ${radius} km of this location.`);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save. Please try again.');
