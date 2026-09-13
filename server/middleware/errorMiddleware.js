@@ -19,12 +19,24 @@
 
 // eslint-disable-next-line no-unused-vars
 const errorMiddleware = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
+  let statusCode = err.statusCode || 500;
+  let message    = err.message || 'Internal Server Error';
+
+  // Handle Multer upload errors gracefully
+  if (err.name === 'MulterError') {
+    statusCode = 400;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'File size cannot exceed 5MB';
+    } else {
+      message = `File upload error: ${err.message}`;
+    }
+  }
+
   const isDev = process.env.NODE_ENV === 'development';
 
   res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message,
     // Only include stack trace in development — never expose it in production
     ...(isDev && { stack: err.stack }),
   });

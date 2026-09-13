@@ -69,4 +69,21 @@ const upload = multer({
   limits: { fileSize: MAX_FILE_SIZE },
 });
 
+// ── Phase 9: Magic byte verification middleware ──────────────────────────────
+const { verifyFileMagicBytes } = require('../services/gridfsService');
+
+const validateMagicBytes = async (req, res, next) => {
+  if (!req.file || !req.file.id) {
+    return next();
+  }
+  try {
+    await verifyFileMagicBytes(req.file.id);
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
+
+upload.validateMagicBytes = validateMagicBytes;
 module.exports = upload;
+

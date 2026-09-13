@@ -58,4 +58,54 @@ const deleteFile = async (fileId) => {
   await bucket.delete(fileId);
 };
 
-module.exports = { initGridFS, getGFSBucket, deleteFile };
+/**
+ * Phase 9: Verify image magic bytes from the first GridFS chunk.
+ * Prevents file-extension spoofing (e.g. executable/script disguised as .png/.jpg).
+ * If invalid, purges the uploaded file immediately and throws a 400 error.
+ *
+ * Magic Byte signatures:
+ *   JPEG: FF D8 FF
+ *   PNG:  89 50 4E 47 0D 0A 1A 0A
+ *   WEBP: RIFF (bytes 0-3) + WEBP (bytes 8-11)
+ *
+ * @param {mongoose.Types.ObjectId} fileId
+ */
+const verifyFileMagicBytes = async (fileId) => {
+  const db = mongoose.connection.db;
+  const chunk = await db.collection('uploads.chunks').findOne({ files_id: fileId, n: 0 });
+
+  if (!chunk || !chunk.data) {
+    await deleteFile(fileId).catch(() => {});
+    const err = new Error('Corrupted or empty file upload');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const buf = chunk.data.buffer || chunk.data;
+
+  // JPEG signature: FF D8 FF
+  const isJpeg = buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF;
+
+  // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+  const isPng =
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 &&
+    buf[4] === 0x0D && buf[5] === 0x0A && buf[6] === 0x1A && buf[7] === 0x0A;
+
+  // WebP signature: 'RIFF' at 0..3 and 'WEBP' at 8..11
+  const isWebp =
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50;
+
+  if (!isJpeg && !isPng && !isWebp) {
+    // Purge the spoofed file so it doesn't waste GridFS space
+    await deleteFile(fileId).catch(() => {});
+    const err = new Error('File validation failed: File content does not match allowed image formats (JPEG, PNG, WEBP)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return true;
+};
+
+module.exports = { initGridFS, getGFSBucket, deleteFile, verifyFileMagicBytes };
+

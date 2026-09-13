@@ -31,8 +31,9 @@ const {
 // upload.single('photo') runs before createIncident:
 //   • streams the file to GridFS, sets req.file
 //   • text fields (title, description, etc.) remain in req.body
+//   • validateMagicBytes verifies actual binary header bytes (Phase 9)
 //   • if no file sent, req.file is undefined — that's fine (photo is optional)
-router.post('/', requireAuth, upload.single('photo'), createIncident);
+router.post('/', requireAuth, upload.single('photo'), upload.validateMagicBytes, createIncident);
 
 // GET    /api/incidents            — list with filters + pagination
 router.get('/', requireAuth, getIncidents);
