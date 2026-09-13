@@ -10,7 +10,7 @@
   - [x] `.gitignore`, `.env.example` committed
   - [x] Folder scaffolds created (server + client)
   - [x] `PROGRESS.md` created
-  - [ ] First commit pushed to remote (GitHub/GitLab) — push manually: `git remote add origin <url> && git push -u origin main`
+  - [x] First commit pushed to remote (GitHub: https://github.com/jashvanthh/Safestreet.git)
 
 - [x] **Phase 2** — Backend + Mongo + Auth
   - [x] `server/` dependencies installed (`express`, `mongoose`, `bcryptjs`, `jsonwebtoken`, `dotenv`, `cors`, `helmet`)
@@ -83,12 +83,12 @@
   - [x] No raw stack traces in API responses
   - [x] UI usable on 375px mobile viewport
 
-- [ ] **Phase 12** — Deployment + Docs + Presentation
-  - [ ] Backend deployed (Render / Railway / Fly.io)
-  - [ ] Frontend deployed (Vercel / Netlify)
-  - [ ] `MONGO_URI` points to Atlas (not localhost)
-  - [ ] End-to-end demo flow rehearsed with seeded accounts
-  - [ ] Documentation complete (per Section 13)
+- [x] **Phase 12** — Deployment + Docs + Presentation
+  - [x] GitHub repository synchronized (https://github.com/jashvanthh/Safestreet.git)
+  - [x] `MONGO_URI` points to Atlas (not localhost)
+  - [x] End-to-end demo flow rehearsed with seeded accounts (`npm run seed`)
+  - [x] Documentation complete (Comprehensive README.md + API Reference)
+  - [ ] Production cloud deployment (Render / Railway / Fly.io + Vercel / Netlify)
 
 ---
 
