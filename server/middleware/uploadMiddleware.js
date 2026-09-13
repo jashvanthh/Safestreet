@@ -25,6 +25,7 @@
  *   temporarily switch to DISK_STORAGE below and come back to GridFS in Phase 9.
  */
 
+require('dotenv').config();
 const multer       = require('multer');
 const { GridFsStorage } = require('multer-gridfs-storage');
 const path         = require('path');
@@ -34,7 +35,7 @@ const MAX_FILE_SIZE      = 5 * 1024 * 1024;   // 5 MB in bytes
 
 // ── GridFS storage (primary) ──────────────────────────────────────────────────
 const gridFsStorage = new GridFsStorage({
-  url:     process.env.MONGO_URI,
+  url:     process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/safestreet_fallback',
   options: { useNewUrlParser: true, useUnifiedTopology: true },
   file: (_req, file) => ({
     bucketName: 'uploads',

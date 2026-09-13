@@ -75,13 +75,13 @@
   - [x] Email sent via Nodemailer (or logged if SMTP not configured)
   - [x] `GET /api/digest/latest` returns latest for authenticated user
 
-- [ ] **Phase 11** — Testing + Security + Responsive UI
-  - [ ] Jest + Supertest + `mongodb-memory-server` installed
-  - [ ] Tests: auth, incident CRUD, geo, admin auth, anonymous hiding, upload validation
-  - [ ] All tests pass (`npm test`)
-  - [ ] `helmet()` applied on Express
-  - [ ] No raw stack traces in API responses
-  - [ ] UI usable on 375px mobile viewport
+- [x] **Phase 11** — Testing + Security + Responsive UI
+  - [x] Jest + Supertest + `mongodb-memory-server` installed
+  - [x] Tests: auth, incident CRUD, geo, admin auth, anonymous hiding, upload validation
+  - [x] All tests pass (`npm test`)
+  - [x] `helmet()` applied on Express
+  - [x] No raw stack traces in API responses
+  - [x] UI usable on 375px mobile viewport
 
 - [ ] **Phase 12** — Deployment + Docs + Presentation
   - [ ] Backend deployed (Render / Railway / Fly.io)
