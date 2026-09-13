@@ -11,6 +11,7 @@
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import 'leaflet/dist/leaflet.css';   // Must come before index.css — Leaflet map styles
 import './index.css';
 import App from './App.jsx';
 

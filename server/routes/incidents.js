@@ -16,6 +16,7 @@ const express    = require('express');
 const router     = express.Router();
 const { requireAuth }  = require('../middleware/authMiddleware');
 const { requireAdmin } = require('../middleware/adminMiddleware');
+const upload           = require('../middleware/uploadMiddleware');
 const {
   createIncident,
   getIncidents,
@@ -26,8 +27,12 @@ const {
   deleteIncident,
 } = require('../controllers/incidentController');
 
-// POST   /api/incidents            — create (authenticated residents + admins)
-router.post('/', requireAuth, createIncident);
+// POST   /api/incidents            — create (authenticated, multipart/form-data)
+// upload.single('photo') runs before createIncident:
+//   • streams the file to GridFS, sets req.file
+//   • text fields (title, description, etc.) remain in req.body
+//   • if no file sent, req.file is undefined — that's fine (photo is optional)
+router.post('/', requireAuth, upload.single('photo'), createIncident);
 
 // GET    /api/incidents            — list with filters + pagination
 router.get('/', requireAuth, getIncidents);

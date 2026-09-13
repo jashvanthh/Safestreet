@@ -17,6 +17,7 @@
 require('dotenv').config();            // Load .env before anything else
 const http = require('http');
 const connectDB = require('./config/db');
+const { initGridFS } = require('./services/gridfsService');
 const app = require('./app');
 
 // ── Phase 8: Socket.IO will be initialized here ──────────────────────────────
@@ -26,10 +27,10 @@ const app = require('./app');
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  await connectDB();                   // Fail fast if DB is unreachable
+  await connectDB();     // Fail fast if DB is unreachable
+  initGridFS();          // Must run AFTER connectDB — needs mongoose.connection.db
 
   const httpServer = http.createServer(app);
-
   // Phase 8: initSocket(httpServer);
 
   httpServer.listen(PORT, () => {

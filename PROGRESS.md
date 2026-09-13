@@ -29,12 +29,12 @@
   - [x] `GET /api/incidents/:id`
   - [x] Anonymous stripping tested (no `reportedBy` in response when `isAnonymous: true`)
 
-- [ ] **Phase 4** — React Scaffold + Routing + Auth
-  - [ ] `client/` created with Vite + React + Tailwind
-  - [ ] `AuthContext` + `useAuth` hook working
-  - [ ] `ProtectedRoute` and `AdminRoute` components redirect unauthenticated / non-admin
-  - [ ] All page components exist (even as stubs)
-  - [ ] Login / Register pages functional end-to-end
+- [x] **Phase 4** — React Scaffold + Routing + Auth
+  - [x] `client/` created with Vite + React + Tailwind
+  - [x] `AuthContext` + `useAuth` hook working
+  - [x] `ProtectedRoute` and `AdminRoute` components redirect unauthenticated / non-admin
+  - [x] All page components exist (even as stubs)
+  - [x] Login / Register pages functional end-to-end
 
 - [ ] **Phase 5** — Reporting + Leaflet Picker
   - [ ] `IncidentForm` with category, title, description, location picker, photo upload

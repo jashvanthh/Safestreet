@@ -24,6 +24,7 @@
 
 const Incident              = require('../models/Incident');
 const { findIncidentsNear } = require('../services/geoService');
+const { deleteFile }        = require('../services/gridfsService');
 const { isValidCoordinates, isValidCategory } = require('../utils/validators');
 
 // ── Helper: strip reportedBy from response when isAnonymous ──────────────────
@@ -71,8 +72,14 @@ const createIncident = async (req, res, next) => {
       reportedBy:      req.user._id,
       isAnonymous:     isAnonymous === true || isAnonymous === 'true',
       reporterContact: reporterContact || '',
-      // photoFileId: populated in Phase 5 when Multer/GridFS is wired in
     };
+
+    // ── Attach photo if uploaded (Multer + GridFS wired in routes/incidents.js) ──
+    // req.file is set by upload.single('photo') middleware when a file is present.
+    // req.file.id is the GridFS ObjectId — we store only this reference, not the bytes.
+    if (req.file && req.file.id) {
+      incidentData.photoFileId = req.file.id;
+    }
 
     const incident = await Incident.create(incidentData);
 
@@ -301,8 +308,10 @@ const deleteIncident = async (req, res, next) => {
       const err = new Error('Incident not found'); err.statusCode = 404; return next(err);
     }
 
-    // Phase 5/9: if incident had a photo, delete the GridFS file too
-    // if (incident.photoFileId) await gridfsService.deleteFile(incident.photoFileId);
+    // Clean up GridFS photo if one exists
+    if (incident.photoFileId) {
+      try { await deleteFile(incident.photoFileId); } catch (_) { /* non-fatal */ }
+    }
 
     res.status(200).json({
       success: true,
