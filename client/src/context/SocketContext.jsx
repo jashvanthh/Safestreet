@@ -87,7 +87,10 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('connect_error', (err) => {
-      console.warn('Socket connection error:', err.message);
+      // Only log in development — production failures are handled by reconnect logic
+      if (import.meta.env.DEV) {
+        console.warn('Socket connection error:', err.message);
+      }
     });
 
     socketRef.current = newSocket;
