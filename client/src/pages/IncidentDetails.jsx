@@ -5,7 +5,7 @@
  * Includes status workflow timeline, GridFS photo evidence, and embedded mini-map location.
  */
 import { useState, useEffect } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import {
   ArrowLeft,
@@ -21,8 +21,10 @@ import {
   AlertTriangle,
   Eye,
   Camera,
+  Trash2,
 } from 'lucide-react';
 import api from '../services/api';
+import useAuth from '../hooks/useAuth';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Card, Badge, Button } from '../components/ui';
@@ -45,10 +47,15 @@ const STATUS_STEPS = [
 const IncidentDetails = () => {
   const { id } = useParams();
   const routeState = useLocation().state;
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [incident, setIncident] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     const fetchIncident = async () => {
@@ -100,6 +107,24 @@ const IncidentDetails = () => {
     return 'pending';
   };
 
+  // Check if the current user can delete (must be the reporter OR an admin)
+  const isOwner  = user && incident.reportedBy && incident.reportedBy._id === user._id;
+  const isAdmin  = user && user.role === 'admin';
+  const canDelete = isOwner || isAdmin;
+
+  const handleDelete = async () => {
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      await api.delete(`/incidents/${id}`);
+      navigate('/map', { state: { deleted: true } });
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete. Please try again.');
+      setDeleteLoading(false);
+      setDeleteConfirm(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -114,10 +139,58 @@ const IncidentDetails = () => {
             <span>Back to Safety Map</span>
           </Link>
 
-          <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
-            Case Ref: {incident._id.slice(-8).toUpperCase()}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
+              Case Ref: {incident._id.slice(-8).toUpperCase()}
+            </span>
+
+            {/* Delete button — only visible to the reporter or an admin */}
+            {canDelete && !deleteConfirm && (
+              <button
+                id="delete-incident-btn"
+                onClick={() => setDeleteConfirm(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 px-2.5 py-1.5 rounded-lg transition-colors border border-[var(--color-danger)]/30"
+              >
+                <Trash2 size={13} strokeWidth={2} />
+                Delete Report
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* ── Delete Confirmation Banner ────────────────────────────── */}
+        {deleteConfirm && (
+          <div className="p-4 bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/30 rounded-xl space-y-3">
+            <div className="flex items-start gap-3">
+              <Trash2 size={18} className="text-[var(--color-danger)] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-[var(--color-danger)]">Delete this incident report?</p>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed">
+                  This action is permanent. The report, associated location data, and any uploaded photo will be removed and cannot be recovered.
+                </p>
+                {deleteError && (
+                  <p className="text-xs text-[var(--color-danger)] mt-2 font-medium">{deleteError}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-7">
+              <button
+                id="confirm-delete-btn"
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="text-xs font-bold px-4 py-2 rounded-lg bg-[var(--color-danger)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {deleteLoading ? 'Deleting…' : 'Yes, Delete Permanently'}
+              </button>
+              <button
+                onClick={() => { setDeleteConfirm(false); setDeleteError(''); }}
+                className="text-xs font-medium px-4 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Just Created Success Banner ─────────────────────────────── */}
         {routeState?.justCreated && (

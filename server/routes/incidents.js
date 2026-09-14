@@ -50,7 +50,7 @@ router.get('/:id', requireAuth, getIncidentById);
 // PATCH  /api/incidents/:id/status — admin only
 router.patch('/:id/status', requireAuth, requireAdmin, updateIncidentStatus);
 
-// DELETE /api/incidents/:id        — admin only
-router.delete('/:id', requireAuth, requireAdmin, deleteIncident);
+// DELETE /api/incidents/:id — admin OR the reporter who filed it
+router.delete('/:id', requireAuth, deleteIncident);
 
 module.exports = router;

@@ -362,14 +362,29 @@ const updateIncidentStatus = async (req, res, next) => {
   }
 };
 
-// ── DELETE /api/incidents/:id  (admin only — enforced in route) ───────────────
+// ── DELETE /api/incidents/:id  (admin OR original reporter) ──────────────────
+// Admin can delete any incident.
+// A resident can only delete their OWN incident (ownership check below).
 const deleteIncident = async (req, res, next) => {
   try {
-    const incident = await Incident.findByIdAndDelete(req.params.id);
+    const incident = await Incident.findById(req.params.id);
 
     if (!incident) {
       const err = new Error('Incident not found'); err.statusCode = 404; return next(err);
     }
+
+    // ── Ownership check ───────────────────────────────────────────────────────
+    // Admins bypass this check. Residents can only delete their own reports.
+    const isAdmin    = req.user.role === 'admin';
+    const isReporter = incident.reportedBy && incident.reportedBy.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isReporter) {
+      const err = new Error('You can only delete your own reports');
+      err.statusCode = 403;
+      return next(err);
+    }
+
+    await Incident.findByIdAndDelete(req.params.id);
 
     // Clean up GridFS photo if one exists
     if (incident.photoFileId) {
