@@ -21,17 +21,26 @@ const nodemailer = require('nodemailer');
 // ── Brevo (Sendinblue) SDK ────────────────────────────────────────────────────
 // Free tier: 300 emails/day. Sends to ANY email without domain verification.
 let brevoClient = null;
-if (process.env.BREVO_API_KEY && process.env.NODE_ENV !== 'test') {
+const rawBrevoKey = process.env.BREVO_API_KEY;
+const brevoKey = rawBrevoKey ? rawBrevoKey.trim().replace(/^["']|["']$/g, '') : null;
+
+if (brevoKey && process.env.NODE_ENV !== 'test') {
   const { BrevoClient } = require('@getbrevo/brevo');
-  brevoClient = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
+  brevoClient = new BrevoClient({ apiKey: brevoKey });
+  if (!brevoKey.startsWith('xkeysib-')) {
+    console.warn('⚠️ [Brevo Config Warning] BREVO_API_KEY does not start with "xkeysib-". Ensure you copied the API key from "SMTP & API" -> "API Keys" tab, not the SMTP password.');
+  }
 }
 
 // ── Resend SDK ────────────────────────────────────────────────────────────────
 // Free tier: 3000 emails/month. Secondary fallback if Brevo is not set or fails.
 let resendClient = null;
-if (process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
+const rawResendKey = process.env.RESEND_API_KEY;
+const resendKey = rawResendKey ? rawResendKey.trim().replace(/^["']|["']$/g, '') : null;
+
+if (resendKey && process.env.NODE_ENV !== 'test') {
   const { Resend } = require('resend');
-  resendClient = new Resend(process.env.RESEND_API_KEY);
+  resendClient = new Resend(resendKey);
 }
 
 /**
@@ -61,14 +70,14 @@ const sendEmail = async ({ to, subject, html, text }) => {
   // ── 1. Brevo HTTP API (preferred — sends to any email, no domain needed) ─────
   if (brevoClient) {
     try {
-      const senderName  = process.env.BREVO_SENDER_NAME  || 'SafeStreet';
-      const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'kjashwanthreddy2001@gmail.com';
+      const senderName  = (process.env.BREVO_SENDER_NAME  || 'SafeStreet').trim().replace(/^["']|["']$/g, '');
+      const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'kjashwanthreddy2001@gmail.com').trim().replace(/^["']|["']$/g, '');
       return await brevoClient.transactionalEmails.sendTransacEmail({
         subject,
         htmlContent: html,
         textContent: text,
         sender: { name: senderName, email: senderEmail },
-        to: [{ email: to }],
+        to: [{ email: to.trim() }],
       });
     } catch (brevoErr) {
       console.warn('⚠️ Brevo delivery failed:', brevoErr.message);
@@ -82,7 +91,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
   // ── 2. Resend HTTPS API (fallback — needs domain for non-owner addresses) ─────
   if (resendClient) {
     const from = process.env.RESEND_FROM || 'SafeStreet <onboarding@resend.dev>';
-    const data = await resendClient.emails.send({ from, to, subject, html, text });
+    const data = await resendClient.emails.send({ from, to: to.trim(), subject, html, text });
     if (data.error) throw new Error(data.error.message);
     return data;
   }
