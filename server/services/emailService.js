@@ -30,7 +30,9 @@ const isDeliverableEmail = (email) => {
     lower.endsWith('.example') ||
     lower.endsWith('.invalid') ||
     lower.endsWith('.localhost') ||
-    lower.includes('@safestreet.test')
+    lower.includes('@safestreet.') ||
+    lower.endsWith('@test.com') ||
+    lower.endsWith('@example.com')
   ) {
     return false;
   }
