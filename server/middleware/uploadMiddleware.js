@@ -1,82 +1,108 @@
 /**
  * middleware/uploadMiddleware.js
  *
- * Multer + multer-gridfs-storage pipeline.
+ * Multer v2 + Custom GridFS Storage Engine.
  *
- * HOW THIS WORKS (viva explanation):
- *   1. Client sends a POST with Content-Type: multipart/form-data
+ * WHY A CUSTOM ENGINE?
+ *   multer-gridfs-storage@5.x only supports multer@^1.4.x and has been
+ *   abandoned. multer@2.x fixes 3 HIGH-severity DoS CVEs and introduces
+ *   a cleaner storage interface. We implement GridFS storage directly
+ *   using the native MongoDB driver's GridFSBucket — no extra package needed.
+ *
+ * HOW IT WORKS (viva explanation):
+ *   1. Client sends POST with Content-Type: multipart/form-data
  *   2. Multer intercepts the request BEFORE the controller runs
- *   3. multer-gridfs-storage streams the file directly into MongoDB GridFS
- *      (no temporary file on disk — it goes straight to the DB)
- *   4. After Multer finishes, req.file is populated with GridFS metadata:
- *        req.file.id          → the GridFS _id (store this as photoFileId)
+ *   3. Our GridFSBucketStorage._handleFile() opens a GridFS upload stream
+ *      and pipes the incoming file stream directly into MongoDB — no disk I/O.
+ *   4. After upload completes, req.file is populated with:
+ *        req.file.id          → the GridFS ObjectId (store as photoFileId)
  *        req.file.filename    → stored filename
  *        req.file.contentType → MIME type
- *        req.file.size        → bytes
- *   5. req.body still has all the text fields (title, description, etc.)
+ *        req.file.size        → bytes uploaded
+ *   5. req.body still contains all text fields (title, description, etc.)
  *
  * VALIDATION:
- *   fileFilter checks file.mimetype — rejects non-image files with a 400.
- *   limits.fileSize = 5MB — Multer rejects oversized files automatically.
- *   NOTE: mimetype can be spoofed by a client. Phase 9 adds magic byte checking
- *   (reading the first few bytes of the file to verify the actual format).
- *
- * FALLBACK: If multer-gridfs-storage causes issues during development,
- *   temporarily switch to DISK_STORAGE below and come back to GridFS in Phase 9.
+ *   fileFilter  — rejects non-image MIME types with 400.
+ *   limits.fileSize = 5 MB — multer rejects oversized files automatically.
+ *   validateMagicBytes — reads first bytes from GridFS to verify actual format
+ *                        (prevents MIME type spoofing).
  */
 
-require('dotenv').config();
-const multer       = require('multer');
-const { GridFsStorage } = require('multer-gridfs-storage');
-const path         = require('path');
+const multer   = require('multer');
+const path     = require('path');
+const mongoose = require('mongoose');
+const { GridFSBucket, ObjectId } = require('mongodb');
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE      = 5 * 1024 * 1024;   // 5 MB in bytes
+const BUCKET_NAME        = 'uploads';
 
-// ── GridFS storage (primary) ──────────────────────────────────────────────────
-const gridFsStorage = new GridFsStorage({
-  url:     process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/safestreet_fallback',
-  options: { useNewUrlParser: true, useUnifiedTopology: true },
-  file: (_req, file) => ({
-    bucketName: 'uploads',
-    // Generate a unique filename to avoid collisions
-    filename: `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`,
-  }),
-});
+// ── Custom multer v2 GridFS Storage Engine ────────────────────────────────────
+// Implements the _handleFile / _removeFile interface required by multer v2.
+class GridFSBucketStorage {
+  /**
+   * _handleFile is called by multer for every accepted file.
+   * We open a GridFS upload stream and pipe the incoming file into it.
+   * On success we call cb(null, fileInfo) — multer merges fileInfo into req.file.
+   */
+  _handleFile(_req, file, cb) {
+    const db     = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: BUCKET_NAME });
 
-// ── Disk storage (fallback — uncomment if GridFS is blocking you) ─────────────
-// const diskStorage = multer.diskStorage({
-//   destination: 'uploads/',
-//   filename: (_req, file, cb) => {
-//     cb(null, `${Date.now()}-${file.originalname.replace(/\s/g, '_')}`);
-//   },
-// });
+    const filename   = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+    const uploadStream = bucket.openUploadStream(filename, {
+      contentType: file.mimetype,
+    });
+
+    file.stream.pipe(uploadStream)
+      .on('error', cb)
+      .on('finish', () => {
+        cb(null, {
+          id:          uploadStream.id,     // GridFS ObjectId
+          filename:    uploadStream.filename,
+          contentType: file.mimetype,
+          size:        uploadStream.length,
+        });
+      });
+  }
+
+  /**
+   * _removeFile is called by multer if a subsequent middleware throws.
+   * We delete the already-uploaded GridFS file to avoid orphaned chunks.
+   */
+  _removeFile(_req, file, cb) {
+    if (!file.id) return cb(null);
+    const db     = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: BUCKET_NAME });
+    bucket.delete(new ObjectId(file.id), cb);
+  }
+}
 
 // ── File type filter ──────────────────────────────────────────────────────────
 const fileFilter = (_req, file, cb) => {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-    cb(null, true);    // Accept
+    cb(null, true);   // Accept
   } else {
     const err = new Error('Only JPEG, PNG, and WEBP images are allowed');
     err.statusCode = 400;
-    cb(err, false);    // Reject
+    cb(err, false);   // Reject
   }
 };
 
-// ── Configured Multer instance ────────────────────────────────────────────────
+// ── Configured multer instance ────────────────────────────────────────────────
 const upload = multer({
-  storage:    gridFsStorage,       // Swap to diskStorage if needed
+  storage:   new GridFSBucketStorage(),
   fileFilter,
   limits: { fileSize: MAX_FILE_SIZE },
 });
 
-// ── Phase 9: Magic byte verification middleware ──────────────────────────────
+// ── Magic byte verification middleware ────────────────────────────────────────
+// Reads the first bytes of the stored file from GridFS and verifies the
+// actual binary format — prevents MIME type spoofing by a malicious client.
 const { verifyFileMagicBytes } = require('../services/gridfsService');
 
 const validateMagicBytes = async (req, res, next) => {
-  if (!req.file || !req.file.id) {
-    return next();
-  }
+  if (!req.file || !req.file.id) return next();
   try {
     await verifyFileMagicBytes(req.file.id);
     next();
@@ -87,4 +113,3 @@ const validateMagicBytes = async (req, res, next) => {
 
 upload.validateMagicBytes = validateMagicBytes;
 module.exports = upload;
-
