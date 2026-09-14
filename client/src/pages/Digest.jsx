@@ -1,36 +1,80 @@
 /**
  * pages/Digest.jsx
  *
- * Phase 10 — Weekly Safety Digest
- *
- * Displays localized neighborhood safety statistics:
- *   - Incidents within the user's notification radius over the past 7 days
- *   - Week-over-week trend indicator (up / down / stable)
- *   - Breakdown by incident categories with animated progress bars
- *   - Safety recommendations and action triggers
- *   - On-demand "Generate / Refresh" button to fetch immediate data
+ * SafeStreet — Weekly Safety Digest.
+ * Editorial data-report composition synthesizing narrative intelligence,
+ * week-over-week trends, and category hazard distributions.
+ * Completely avoids generic card-stack fatigue in favor of an authentic civic document.
  */
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  RefreshCw,
+  MapPin,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Shield,
+  Lightbulb,
+  AlertTriangle,
+  ShieldAlert,
+  Eye,
+  CheckCircle2,
+  FileText,
+  Map,
+  Info,
+  Calendar,
+  Compass,
+} from 'lucide-react';
 import api from '../services/api';
 import useAuth from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { Button } from '../components/ui';
 
-const CATEGORY_LABELS = {
-  poor_lighting:        { label: 'Poor Lighting',        icon: '💡', color: 'bg-amber-500' },
-  harassment:           { label: 'Harassment',           icon: '⚠️', color: 'bg-red-500' },
-  unsafe_intersection:  { label: 'Unsafe Intersection',  icon: '🚦', color: 'bg-orange-500' },
-  suspicious_activity:  { label: 'Suspicious Activity',  icon: '👁️', color: 'bg-purple-500' },
-  other:                { label: 'Other Hazards',        icon: '📌', color: 'bg-blue-500' },
+const CATEGORY_META = {
+  poor_lighting: {
+    label: 'Poor Lighting',
+    icon: Lightbulb,
+    color: 'bg-[var(--color-warning)]',
+    text: 'text-[var(--color-warning)]',
+    bg: 'bg-[var(--color-warning-light)]',
+  },
+  harassment: {
+    label: 'Harassment',
+    icon: AlertTriangle,
+    color: 'bg-[var(--color-danger)]',
+    text: 'text-[var(--color-danger)]',
+    bg: 'bg-[var(--color-danger-light)]',
+  },
+  unsafe_intersection: {
+    label: 'Unsafe Intersection',
+    icon: ShieldAlert,
+    color: 'bg-[var(--color-warning)]',
+    text: 'text-[var(--color-warning)]',
+    bg: 'bg-[var(--color-warning-light)]',
+  },
+  suspicious_activity: {
+    label: 'Suspicious Activity',
+    icon: Eye,
+    color: 'text-[var(--color-primary)]',
+    text: 'text-[var(--color-primary)]',
+    bg: 'bg-[var(--color-primary-light)]',
+  },
+  other: {
+    label: 'Civic Hazards',
+    icon: MapPin,
+    color: 'bg-[var(--color-secondary)]',
+    text: 'text-[var(--color-secondary)]',
+    bg: 'bg-[var(--color-secondary-light)]',
+  },
 };
 
 const Digest = () => {
   const { user } = useAuth();
-  const [digest, setDigest]       = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const [digest, setDigest] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]         = useState('');
+  const [error, setError] = useState('');
 
   const fetchDigest = async () => {
     try {
@@ -56,7 +100,7 @@ const Digest = () => {
       const res = await api.post('/digest/generate');
       setDigest(res.data?.data?.digest || null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to generate new digest');
+      setError(err.response?.data?.message || 'Failed to generate refreshed digest.');
       setRefreshing(false);
     } finally {
       setRefreshing(false);
@@ -64,11 +108,7 @@ const Digest = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <LoadingSpinner message="Loading your neighborhood safety digest..." />
-      </div>
-    );
+    return <LoadingSpinner message="Synthesizing weekly safety data report…" />;
   }
 
   const hasLocation =
@@ -82,7 +122,6 @@ const Digest = () => {
   const total = digest?.totalIncidents ?? 0;
   const trend = digest?.trend || 'stable';
 
-  // Format date range: e.g. "Sep 6, 2026 – Sep 13, 2026"
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -92,249 +131,261 @@ const Digest = () => {
     });
   };
 
-  const getSafetyLevel = (count) => {
-    if (count === 0) return { label: 'High Safety', badge: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
-    if (count <= 2)  return { label: 'Moderate Safety', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
-    if (count <= 5)  return { label: 'Moderate Hazard', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
-    return { label: 'Caution Advised', badge: 'bg-rose-500/20 text-rose-400 border-rose-500/30' };
-  };
+  // Top category determination
+  const topCategoryItem =
+    digest?.categorySummary && digest.categorySummary.length > 0
+      ? [...digest.categorySummary].sort((a, b) => b.count - a.count)[0]
+      : null;
 
-  const safetyInfo = getSafetyLevel(total);
+  const topCategoryMeta = topCategoryItem
+    ? CATEGORY_META[topCategoryItem.category] || CATEGORY_META.other
+    : null;
 
   return (
-    <div className="min-h-screen bg-slate-900 py-8 px-4 text-slate-100">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] py-8 px-4 sm:px-6 lg:px-8 text-[var(--color-text-primary)]">
+      <div className="max-w-4xl mx-auto space-y-8">
 
-        {/* Top Header Card */}
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-44 h-44 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">📊</span>
-                <span className="text-xs font-semibold tracking-wider uppercase text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">
-                  Weekly Safety Digest
-                </span>
-                <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${safetyInfo.badge}`}>
-                  {safetyInfo.label}
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Neighborhood Safety Overview
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">
-                {digest?.weekStart && digest?.weekEnd
-                  ? `${formatDate(digest.weekStart)} — ${formatDate(digest.weekEnd)}`
-                  : 'Past 7 Days Reporting Window'}
-                {' • '}
-                <span className="text-slate-300 font-medium">{radiusKm} km radius zone</span>
-              </p>
+        {/* ── Document Masthead ──────────────────────────────────────── */}
+        <div className="border-b border-[var(--color-border)] pb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="inline-flex items-center gap-2 text-[var(--color-primary)] font-semibold uppercase tracking-wider">
+              <FileText size={14} strokeWidth={2.2} />
+              <span>Civic Retrospective Report</span>
+              <span className="text-[var(--color-text-muted)]">•</span>
+              <span className="text-[var(--color-text-muted)] font-mono">Vol. 7-Day</span>
             </div>
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all shadow-md hover:shadow-blue-500/20 shrink-0 cursor-pointer"
-              title="Generate fresh statistics right now"
+              className="self-start sm:self-auto gap-1.5 text-xs whitespace-nowrap"
             >
-              <svg
-                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              {refreshing ? 'Generating...' : 'Refresh Digest'}
-            </button>
+              <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+              <span>{refreshing ? 'Generating…' : 'Recalculate Telemetry'}</span>
+            </Button>
           </div>
 
-          {!hasLocation && (
-            <div className="mt-5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span>📍</span>
-                <span>
-                  You have not set your notification pin yet. Showing reports for all areas.
+          <div className="space-y-1.5">
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
+              Neighborhood Safety Digest
+            </h1>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)]">
+              An aggregated 7-day analysis of verified incident dispatches, week-over-week trends, and hazard distributions.
+            </p>
+          </div>
+
+          {/* Metadata Bar */}
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-5 text-xs text-[var(--color-text-muted)] pt-2 border-t border-[var(--color-border-subtle)]">
+            <div className="flex items-center gap-1.5 font-mono">
+              <Calendar size={13} className="text-[var(--color-primary)]" />
+              <span>
+                {digest?.weekStart && digest?.weekEnd
+                  ? `${formatDate(digest.weekStart)} — ${formatDate(digest.weekEnd)}`
+                  : 'Past 7-Day Cycle'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 font-mono">
+              <Compass size={13} className="text-[var(--color-primary)]" />
+              <span>Perimeter: {radiusKm} km radius active</span>
+            </div>
+
+            {!hasLocation && (
+              <Link to="/profile" className="text-[var(--color-warning)] hover:underline font-medium ml-auto">
+                Set home coordinates in profile →
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-3.5 bg-[var(--color-danger-light)] border border-[var(--color-danger)]/25 rounded-xl text-xs text-[var(--color-danger)]">
+            {error}
+          </div>
+        )}
+
+        {/* ── Executive Narrative Synthesis (Editorial Lead) ─────────── */}
+        <div className="p-5 sm:p-6 rounded-xl bg-[var(--color-surface)] border-l-4 border-[var(--color-primary)] border-t border-r border-b border-[var(--color-border)] shadow-xs space-y-2.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary)]">
+            Executive Summary & Narrative Insight
+          </span>
+
+          <p className="text-sm sm:text-base font-medium text-[var(--color-text-primary)] leading-relaxed">
+            {total === 0 ? (
+              `During the monitored 7-day reporting cycle, zero verified safety hazards were filed within your ${radiusKm} km perimeter. Local infrastructure and neighborhood pedestrian routes maintained an optimal baseline.`
+            ) : trend === 'up' ? (
+              `Incident activity within your ${radiusKm} km perimeter rose this week with ${total} reports registered. The primary concentration was observed in ${topCategoryMeta?.label || 'local hazards'}. Residents are encouraged to review route safety.`
+            ) : trend === 'down' ? (
+              `Hazard filings within your ${radiusKm} km perimeter decreased to ${total} cases over the past 7 days, reflecting remediations and calmer neighborhood conditions.`
+            ) : (
+              `Incident volume within your ${radiusKm} km perimeter held stable with ${total} verified safety reports logged during the 7-day period.`
+            )}
+          </p>
+
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            This retrospective is computed dynamically against MongoDB 2dsphere indexes using verified submissions and municipal resolution records.
+          </p>
+        </div>
+
+        {/* ── Data & Analytics Section: Key Metrics + Chart ─────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+
+          {/* Left: Quantitative Telemetry (5 Cols) */}
+          <div className="md:col-span-5 p-5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] space-y-4 shadow-xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
+              Perimeter Telemetry
+            </h3>
+
+            <div className="space-y-3 divide-y divide-[var(--color-border-subtle)] text-xs">
+              {/* Total Incidents */}
+              <div className="pt-2 flex items-center justify-between">
+                <span className="text-[var(--color-text-secondary)]">Total Recorded Hazards</span>
+                <span className="text-2xl font-extrabold text-[var(--color-text-primary)] font-mono">
+                  {total}
                 </span>
               </div>
-              <Link
-                to="/profile"
-                className="underline hover:text-amber-200 font-semibold shrink-0"
-              >
-                Pin Home in Profile →
-              </Link>
-            </div>
-          )}
 
-          {error && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
-              {error}
-            </div>
-          )}
-        </div>
+              {/* Trend Direction */}
+              <div className="pt-3 flex items-center justify-between">
+                <span className="text-[var(--color-text-secondary)]">7-Day Trajectory</span>
+                <div className="flex items-center gap-1.5 font-semibold">
+                  {trend === 'up' ? (
+                    <span className="inline-flex items-center gap-1 text-[var(--color-danger)]">
+                      <TrendingUp size={14} /> Increased
+                    </span>
+                  ) : trend === 'down' ? (
+                    <span className="inline-flex items-center gap-1 text-[var(--color-success)]">
+                      <TrendingDown size={14} /> Decreased
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[var(--color-primary)]">
+                      <Minus size={14} /> Stable
+                    </span>
+                  )}
+                </div>
+              </div>
 
-        {/* 3 Metric Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Card 1: Total Incidents */}
-          <div className="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-5 shadow">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-              <span>Incidents in Zone</span>
-              <span className="text-lg">🛡️</span>
-            </div>
-            <div className="text-3xl font-extrabold text-white">
-              {total}
-            </div>
-            <p className="text-slate-400 text-xs mt-1">
-              Reported within {radiusKm} km this week
-            </p>
-          </div>
+              {/* Top Hazard */}
+              <div className="pt-3 flex items-center justify-between">
+                <span className="text-[var(--color-text-secondary)]">Primary Hazard Type</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">
+                  {topCategoryMeta ? topCategoryMeta.label : 'None Reported'}
+                </span>
+              </div>
 
-          {/* Card 2: Trend */}
-          <div className="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-5 shadow">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-              <span>Week-over-Week Trend</span>
-              <span className="text-lg">
-                {trend === 'up' ? '📈' : trend === 'down' ? '📉' : '➡️'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-xl font-bold ${
-                  trend === 'up'
-                    ? 'text-rose-400'
-                    : trend === 'down'
-                    ? 'text-emerald-400'
-                    : 'text-blue-400'
-                }`}
-              >
-                {trend === 'up'
-                  ? 'Activity Increased'
-                  : trend === 'down'
-                  ? 'Activity Decreased'
-                  : 'Stable Activity'}
-              </span>
-            </div>
-            <p className="text-slate-400 text-xs mt-1">
-              Compared to previous 7-day period
-            </p>
-          </div>
-
-          {/* Card 3: Alert Zone Radius */}
-          <div className="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-5 shadow">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-medium uppercase tracking-wider mb-2">
-              <span>Alert Radius</span>
-              <span className="text-lg">🎯</span>
-            </div>
-            <div className="text-3xl font-extrabold text-blue-400">
-              {radiusKm} <span className="text-lg font-normal text-slate-400">km</span>
-            </div>
-            <div className="flex items-center justify-between mt-1 text-xs">
-              <span className="text-slate-400">Zone boundary</span>
-              <Link to="/profile" className="text-blue-400 hover:text-blue-300 font-medium">
-                Edit in Profile →
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Category Breakdown Section */}
-        <div className="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-6 shadow space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>🏷️</span> Incident Categories Breakdown
-            </h2>
-            <span className="text-xs text-slate-400">
-              {digest?.categorySummary?.length || 0} categories active
-            </span>
-          </div>
-
-          {(!digest?.categorySummary || digest.categorySummary.length === 0) ? (
-            <div className="py-10 text-center space-y-3">
-              <span className="text-4xl block">🎉</span>
-              <h3 className="text-white font-semibold">Clean Sheet This Week!</h3>
-              <p className="text-slate-400 text-sm max-w-md mx-auto">
-                No safety hazards or incidents were reported within your {radiusKm} km radius over the past 7 days.
-              </p>
-              <div className="pt-2">
-                <Link
-                  to="/report"
-                  className="inline-block text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-1.5 rounded-lg transition"
-                >
-                  Spot a hazard? Report it here
-                </Link>
+              {/* Monitoring Perimeter */}
+              <div className="pt-3 flex items-center justify-between">
+                <span className="text-[var(--color-text-secondary)]">Perimeter Radius</span>
+                <span className="font-mono text-[var(--color-text-primary)]">
+                  {radiusKm} km zone
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4 pt-2">
-              {digest.categorySummary.map((item) => {
-                const meta = CATEGORY_LABELS[item.category] || CATEGORY_LABELS.other;
-                const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
-
-                return (
-                  <div key={item.category} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-slate-200 font-medium">
-                        <span>{meta.icon}</span>
-                        <span>{meta.label}</span>
-                      </span>
-                      <span className="text-slate-400 font-mono text-xs">
-                        <strong className="text-white font-bold">{item.count}</strong> ({percentage}%)
-                      </span>
-                    </div>
-                    {/* Progress bar */}
-                    <div className="w-full bg-slate-700/60 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-2.5 rounded-full transition-all duration-500 ${meta.color}`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Safety Tips & Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 space-y-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <span>💡</span> Neighborhood Safety Tips
-            </h3>
-            <ul className="text-xs text-slate-400 space-y-2 list-disc list-inside">
-              <li>Keep phone charged and share live route when commuting late.</li>
-              <li>Report dark alleyways to expedite municipal light installations.</li>
-              <li>Stay alert around major cross streets during evening rush hour.</li>
-            </ul>
           </div>
 
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <span>📢</span> Help Keep Your Streets Safe
+          {/* Right: Proportional Distribution Breakdown (7 Cols) */}
+          <div className="md:col-span-7 p-5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] space-y-4 shadow-xs">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
+                Category Distribution
               </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Your eyewitness reports keep your community informed and empower local authorities to act.
+              <span className="text-[11px] text-[var(--color-text-muted)] font-mono">
+                {digest?.categorySummary?.length || 0} active categories
+              </span>
+            </div>
+
+            {(!digest?.categorySummary || digest.categorySummary.length === 0) ? (
+              <div className="py-8 text-center space-y-2">
+                <CheckCircle2 size={32} className="text-[var(--color-primary)] mx-auto" />
+                <h4 className="text-xs font-bold text-[var(--color-text-primary)]">
+                  Clean Safety Baseline
+                </h4>
+                <p className="text-[11px] text-[var(--color-text-secondary)] max-w-xs mx-auto">
+                  Zero safety hazards or infrastructure concerns were reported within your {radiusKm} km radius over this period.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
+                {digest.categorySummary.map((item) => {
+                  const meta = CATEGORY_META[item.category] || CATEGORY_META.other;
+                  const Icon = meta.icon;
+                  const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
+
+                  return (
+                    <div key={item.category} className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-medium text-[var(--color-text-primary)]">
+                          <Icon size={13} className="text-[var(--color-text-muted)]" />
+                          <span>{meta.label}</span>
+                        </span>
+                        <span className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                          <strong className="text-[var(--color-text-primary)]">{item.count}</strong> ({percentage}%)
+                        </span>
+                      </div>
+
+                      {/* Bar */}
+                      <div className="w-full bg-[var(--color-surface-secondary)] rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[var(--color-primary)] transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* ── Civic Advisory & Municipal Action Dispatch ─────────────── */}
+        <div className="p-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-4">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-2">
+            <Shield size={14} className="text-[var(--color-primary)]" />
+            <span>Civic Protection Guidance</span>
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            <div className="space-y-2">
+              <strong className="text-xs text-[var(--color-text-primary)] block font-semibold">
+                Resident Preventative Measures
+              </strong>
+              <p>
+                Take note of poorly lit sectors flagged in this digest. Pedestrians are encouraged to utilize well-illuminated thoroughfares during nocturnal hours and confirm active crosswalk signals.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/report"
-                className="flex-1 text-center bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold py-2 px-3 rounded-xl transition shadow"
-              >
-                + Report Incident
+
+            <div className="space-y-2">
+              <strong className="text-xs text-[var(--color-text-primary)] block font-semibold">
+                Community Reporting Participation
+              </strong>
+              <p>
+                Every filed report feeds directly into weekly trend synthesis. Timely filings enable civic authorities to prioritize repairs before hazards worsen.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-[var(--color-border-subtle)] flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1">
+              <Info size={12} />
+              Generated automatically every Sunday for registered neighborhood perimeters.
+            </span>
+
+            <div className="flex items-center gap-2">
+              <Link to="/map">
+                <Button variant="secondary" size="sm" className="gap-1.5 text-xs">
+                  <Map size={13} />
+                  <span>Inspect Live Map</span>
+                </Button>
               </Link>
-              <Link
-                to="/map"
-                className="flex-1 text-center bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold py-2 px-3 rounded-xl transition"
-              >
-                Explore Live Map
+              <Link to="/report">
+                <Button variant="primary" size="sm" className="gap-1.5 text-xs shadow-sm">
+                  <FileText size={13} />
+                  <span>File Safety Report</span>
+                </Button>
               </Link>
             </div>
           </div>

@@ -1,45 +1,27 @@
 /**
  * components/LocationPicker.jsx
  *
- * An interactive Leaflet map that lets the user pin an incident location.
- *
- * HOW IT WORKS:
- *   1. MapContainer renders the base map (OpenStreetMap tiles)
- *   2. MapClickHandler (inner component) listens for click events
- *      — it MUST be inside <MapContainer> because useMapEvents() needs
- *        the Leaflet map context provided by MapContainer.
- *   3. When user clicks, we call onChange({ lat, lng })
- *   4. FlyToLocation (inner component) smoothly pans the map to the new
- *      marker position using map.flyTo() — triggered whenever value changes.
- *   5. A Marker is rendered at the selected position.
- *
- * LEAFLET DEFAULT ICON FIX (common Vite issue):
- *   Leaflet's default icon images use __webpack_public_path__ which doesn't
- *   exist in Vite. The workaround is to delete _getIconUrl and manually
- *   set the icon image URLs. These CDN links always work regardless of bundler.
- *
- * Props:
- *   value    — { lat: number, lng: number } | null
- *   onChange — (coords: { lat, lng }) => void
+ * Interactive Leaflet map for selecting incident location.
+ * Provides live coordinate readouts and one-tap current geolocation.
  */
 import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import { MapPin, Navigation, CheckCircle2 } from 'lucide-react';
 import L from 'leaflet';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../utils/constants';
 
-// ── Fix Leaflet default marker icons for Vite ─────────────────────────────────
+// Fix Leaflet marker icon URLs
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// ── Inner: handles map click events ─────────────────────────────────────────
-// Must be a child of MapContainer to access the Leaflet context
 const MapClickHandler = ({ onLocationSelect }) => {
   useMapEvents({
     click(e) {
-      if (e && e.latlng) {
+      if (e?.latlng) {
         onLocationSelect({ lat: e.latlng.lat, lng: e.latlng.lng });
       }
     },
@@ -47,26 +29,22 @@ const MapClickHandler = ({ onLocationSelect }) => {
   return null;
 };
 
-// ── Inner: pans map to position only when requested (e.g. geolocation) ───────
 const FlyToLocation = ({ position, shouldFly, onFlown }) => {
   const map = useMap();
   useEffect(() => {
     if (position && shouldFly) {
-      map.flyTo([position.lat, position.lng], 15, { duration: 1.0 });
+      map.flyTo([position.lat, position.lng], 15, { duration: 0.8 });
       if (onFlown) onFlown();
     }
   }, [position, shouldFly, map, onFlown]);
   return null;
 };
 
-// ── Main component ────────────────────────────────────────────────────────────
 const LocationPicker = ({ value, onChange }) => {
-  const DEFAULT_CENTER = [20.5937, 78.9629];  // India center
-  const DEFAULT_ZOOM   = 5;
   const [shouldFly, setShouldFly] = useState(false);
+  const [locating, setLocating] = useState(false);
   const initialFlown = useRef(false);
 
-  // Fly once on mount if an initial value was provided (e.g. Profile edit)
   useEffect(() => {
     if (value && !initialFlown.current) {
       initialFlown.current = true;
@@ -79,40 +57,56 @@ const LocationPicker = ({ value, onChange }) => {
       alert('Geolocation is not supported by your browser.');
       return;
     }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocating(false);
         setShouldFly(true);
         onChange({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
-      () => alert('Location access denied. Click on the map instead.')
+      () => {
+        setLocating(false);
+        alert('Location access denied. Please click on the map to pin the incident manually.');
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
   return (
-    <div>
-      {/* Controls above map */}
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm text-slate-400">
-          {value
-            ? `📍 ${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}`
-            : 'Click the map to pin the incident location'}
-        </p>
+    <div className="space-y-2">
+      {/* Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {value ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-success)] font-medium bg-[var(--color-success)]/10 px-2.5 py-1 rounded-md border border-[var(--color-success)]/25">
+              <CheckCircle2 size={13} strokeWidth={2.5} />
+              Coordinates: {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]">
+              <MapPin size={13} strokeWidth={2} />
+              Click on the map to drop the incident pin
+            </span>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={handleUseMyLocation}
-          className="text-xs text-blue-400 hover:text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-lg transition-colors"
+          disabled={locating}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] border border-[var(--color-border)] px-3 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
         >
-          Use my location
+          <Navigation size={13} strokeWidth={2} className={locating ? 'animate-spin' : ''} />
+          <span>{locating ? 'Locating…' : 'Use My Current Location'}</span>
         </button>
       </div>
 
-      {/* Map */}
-      <div className="h-56 rounded-xl overflow-hidden border border-slate-600">
+      {/* Map Container */}
+      <div className="h-64 sm:h-72 rounded-xl overflow-hidden border border-[var(--color-border)] shadow-inner relative">
         <MapContainer
-          center={DEFAULT_CENTER}
-          zoom={DEFAULT_ZOOM}
+          center={value ? [value.lat, value.lng] : DEFAULT_MAP_CENTER}
+          zoom={value ? 14 : DEFAULT_MAP_ZOOM}
           style={{ height: '100%', width: '100%' }}
-          // Disable scroll zoom so the page doesn't get stuck on the map
           scrollWheelZoom={false}
         >
           <TileLayer

@@ -17,26 +17,34 @@
  * Built in Phase 4.
  */
 
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState } from 'react';
 import { TOKEN_KEY, USER_KEY } from '../utils/constants';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null);
-  const [token, setToken]     = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // waiting for localStorage read
-
-  // On mount: restore session from localStorage
-  useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_KEY);
-    const storedUser  = localStorage.getItem(USER_KEY);
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem(TOKEN_KEY) || null;
+    } catch {
+      return null;
     }
-    setIsLoading(false);
-  }, []);
+  });
+
+  const [user, setUser] = useState(() => {
+    try {
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      const storedUser  = localStorage.getItem(USER_KEY);
+      if (storedToken && storedUser) {
+        return JSON.parse(storedUser);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const isLoading = false;
 
   const login = (newToken, newUser) => {
     localStorage.setItem(TOKEN_KEY, newToken);

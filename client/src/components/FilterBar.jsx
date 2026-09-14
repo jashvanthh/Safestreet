@@ -1,57 +1,37 @@
 /**
  * components/FilterBar.jsx
  *
- * Renders filter controls for the map/list view.
- * IMPORTANT: filtering is done ON THE SERVER — not client-side.
- *   When a filter changes, we update the parent's filter state,
- *   which triggers a new API call with the filter as query params.
- *   This means: GET /api/incidents?category=harassment&status=reported
- *
- *   WHY server-side filtering? (viva point)
- *   Client-side filtering would require fetching ALL incidents first,
- *   then filtering in JavaScript. As the DB grows this becomes slow.
- *   Server-side filtering uses MongoDB indexes, which are fast regardless
- *   of collection size.
- *
- * Props:
- *   filters  — { category, status } current filter state (controlled from parent)
- *   onChange — (newFilters) => void — called on any filter change
- *   onClear  — () => void — resets all filters
+ * Professional filter controls for map view with clean SVG icon indicators.
  */
-const CATEGORIES = [
-  { value: '',                    label: 'All Categories' },
-  { value: 'poor_lighting',       label: '💡 Poor Lighting' },
-  { value: 'harassment',          label: '⚠️ Harassment' },
-  { value: 'unsafe_intersection', label: '🚦 Unsafe Intersection' },
-  { value: 'suspicious_activity', label: '👁️ Suspicious Activity' },
-  { value: 'other',               label: '📌 Other' },
-];
-
-const STATUSES = [
-  { value: '',             label: 'All Statuses' },
-  { value: 'reported',     label: '🔴 Reported' },
-  { value: 'under_review', label: '🟡 Under Review' },
-  { value: 'resolved',     label: '🟢 Resolved' },
-];
+import { X, Filter } from 'lucide-react';
+import { INCIDENT_CATEGORIES, INCIDENT_STATUSES } from '../utils/constants';
 
 const FilterBar = ({ filters, onChange, onClear }) => {
-  const hasActiveFilter = filters.category || filters.status;
+  const hasActiveFilter = Boolean(filters.category || filters.status);
 
   const handleChange = (key, value) => {
     onChange({ ...filters, [key]: value });
   };
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] pr-1">
+        <Filter size={14} strokeWidth={2} />
+        <span>Filters</span>
+      </div>
+
       {/* Category select */}
       <select
         id="filter-category"
         value={filters.category}
         onChange={(e) => handleChange('category', e.target.value)}
-        className="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 transition-colors"
+        className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[var(--color-primary)] transition-colors cursor-pointer hover:border-[var(--color-border-light)]"
       >
-        {CATEGORIES.map((c) => (
-          <option key={c.value} value={c.value}>{c.label}</option>
+        <option value="">All Categories</option>
+        {INCIDENT_CATEGORIES.map((c) => (
+          <option key={c.value} value={c.value}>
+            {c.label}
+          </option>
         ))}
       </select>
 
@@ -60,21 +40,26 @@ const FilterBar = ({ filters, onChange, onClear }) => {
         id="filter-status"
         value={filters.status}
         onChange={(e) => handleChange('status', e.target.value)}
-        className="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 transition-colors"
+        className="bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-[var(--color-primary)] transition-colors cursor-pointer hover:border-[var(--color-border-light)]"
       >
-        {STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>{s.label}</option>
+        <option value="">All Statuses</option>
+        {INCIDENT_STATUSES.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
         ))}
       </select>
 
-      {/* Clear button — only shown when a filter is active */}
+      {/* Clear button */}
       {hasActiveFilter && (
         <button
-          id="filter-clear"
+          type="button"
           onClick={onClear}
-          className="text-slate-400 hover:text-white text-sm border border-slate-600 hover:border-slate-500 px-3 py-1.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:border-[var(--color-border-light)] px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+          title="Reset all active filters"
         >
-          ✕ Clear
+          <X size={12} strokeWidth={2.5} />
+          <span>Reset</span>
         </button>
       )}
     </div>

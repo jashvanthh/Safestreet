@@ -1,39 +1,145 @@
 @import "tailwindcss";
 
 /*
- * index.css — Global styles + design tokens
- *
- * Why @import "tailwindcss" instead of @tailwind directives?
- *   Tailwind v4 uses a single @import statement with the @tailwindcss/vite plugin.
- *   The old @tailwind base/components/utilities pattern is v3.
- *
- * Custom CSS variables (design tokens) live here.
- * These work alongside Tailwind — use Tailwind classes for layout/spacing,
- * and these variables for brand colors in custom components.
+ * index.css — SafeStreet Premium Light Civic-Tech Design System
+ * 
+ * Calm, trustworthy, and human design tokens for a civic mapping & intelligence platform.
+ * Built on editorial typography, crisp structural borders, and restrained brand greens.
  */
 
 :root {
-  --color-primary: #3b82f6;     /* blue-500 */
-  --color-primary-dark: #1d4ed8;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-success: #22c55e;
-  --color-surface: #1e293b;     /* slate-800 */
-  --color-bg: #0f172a;          /* slate-900 */
-  --color-text: #f1f5f9;        /* slate-100 */
-  --color-muted: #94a3b8;       /* slate-400 */
+  /* ── Core Surfaces & Canvas ────────────────────────────────────── */
+  --color-bg: #FAFBF9;
+  --color-surface: #FFFFFF;
+  --color-surface-secondary: #F2F5F1;
+  --color-surface-subtle: #EAF2EC;
+  --color-border: #DDE5DF;
+  --color-border-subtle: #E8EFEA;
+  --color-border-strong: #CCD7CE;
+
+  /* ── Brand Colors (SafeStreet Civic Green) ──────────────────────── */
+  --color-primary: #287D5A;
+  --color-primary-hover: #216A4C;
+  --color-primary-light: #EBF5F0;
+  --color-secondary: #4AAE9B;
+  --color-secondary-light: #EEF8F6;
+
+  /* ── Semantic Colors ────────────────────────────────────────────── */
+  --color-success: #2E8B57;
+  --color-success-light: #ECF7F1;
+  --color-warning: #C58A24;
+  --color-warning-light: #FAF4E8;
+  --color-danger: #C94C4C;
+  --color-danger-light: #FBEFEF;
+
+  /* ── Text Hierarchy ─────────────────────────────────────────────── */
+  --color-text-primary: #1F2933;
+  --color-text-secondary: #64706B;
+  --color-text-muted: #89948F;
+
+  /* ── Typography ─────────────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Border Radii (Restrained & Functional) ─────────────────────── */
+  --radius-sm: 6px;
+  --radius-btn: 8px;
+  --radius-input: 8px;
+  --radius-card: 10px;
+  --radius-panel: 12px;
+
+  /* ── Elevation Shadows (Extremely subtle, structural) ──────────── */
+  --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -1px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
 }
 
 body {
   background-color: var(--color-bg);
-  color: var(--color-text);
-  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
-/* Leaflet map container needs explicit height */
+/* ── Custom Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ── Leaflet Civic Light Map Styling ──────────────────────────────── */
 .leaflet-container {
   height: 100%;
   width: 100%;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-panel);
+  font-family: var(--font-sans);
+  background: #E8ECE9;
+}
+
+/* Custom Light Leaflet Popups */
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.45 !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--color-text-muted) !important;
+  padding: 6px !important;
+  top: 4px !important;
+  right: 4px !important;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--color-text-primary) !important;
+}
+
+/* Leaflet Zoom Controls Light Styling */
+.leaflet-bar {
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-radius: var(--radius-btn) !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  transition: background-color 0.15s ease;
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--color-surface-secondary) !important;
+  color: var(--color-primary) !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: var(--color-surface-secondary) !important;
+  color: var(--color-text-muted) !important;
 }

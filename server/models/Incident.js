@@ -103,6 +103,14 @@ const incidentSchema = new mongoose.Schema(
       enum:    ['reported', 'under_review', 'resolved'],
       default: 'reported',
     },
+
+    // Risk severity — set by the reporter to separate density from risk level
+    // Defaults to 'medium' so all existing documents remain valid
+    severity: {
+      type:    String,
+      enum:    ['low', 'medium', 'high'],
+      default: 'medium',
+    },
   },
   {
     timestamps: true,   // createdAt + updatedAt
@@ -113,7 +121,7 @@ const incidentSchema = new mongoose.Schema(
 incidentSchema.index({ location: '2dsphere' });
 
 // ── Compound index for common filter combos (improves query performance) ──────
-incidentSchema.index({ category: 1, status: 1, createdAt: -1 });
+incidentSchema.index({ category: 1, status: 1, severity: 1, createdAt: -1 });
 
 const Incident = mongoose.model('Incident', incidentSchema);
 module.exports = Incident;

@@ -32,7 +32,7 @@ const {
   sendStatusUpdateEmail,
   sendAdminNewIncidentAlert,
 } = require('../services/emailService');
-const { isValidCoordinates, isValidCategory } = require('../utils/validators');
+const { isValidCoordinates, isValidCategory, isValidSeverity } = require('../utils/validators');
 
 // ── Helper: strip reportedBy from response when isAnonymous ──────────────────
 const stripAnonymous = (incident) => {
@@ -47,7 +47,7 @@ const stripAnonymous = (incident) => {
 // ── POST /api/incidents ───────────────────────────────────────────────────────
 const createIncident = async (req, res, next) => {
   try {
-    const { title, description, category, lat, lng, isAnonymous, reporterContact } = req.body;
+    const { title, description, category, lat, lng, isAnonymous, reporterContact, severity } = req.body;
 
     // ── Validate required fields ──────────────────────────────────────────
     if (!title || !title.trim()) {
@@ -79,6 +79,8 @@ const createIncident = async (req, res, next) => {
       reportedBy:      req.user._id,
       isAnonymous:     isAnonymous === true || isAnonymous === 'true',
       reporterContact: reporterContact || '',
+      // Accept severity from reporter; fallback to 'medium' if omitted or invalid
+      severity: isValidSeverity(severity) ? severity : 'medium',
     };
 
     // ── Attach photo if uploaded (Multer + GridFS wired in routes/incidents.js) ──
@@ -125,7 +127,7 @@ const createIncident = async (req, res, next) => {
 const getIncidents = async (req, res, next) => {
   try {
     const {
-      category, status,
+      category, status, severity,
       from, to,
       page  = 1,
       limit = 50,
@@ -140,6 +142,9 @@ const getIncidents = async (req, res, next) => {
     }
     if (status && ['reported', 'under_review', 'resolved'].includes(status)) {
       filter.status = status;
+    }
+    if (severity && isValidSeverity(severity)) {
+      filter.severity = severity;
     }
     if (from || to) {
       filter.createdAt = {};

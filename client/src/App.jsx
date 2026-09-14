@@ -36,41 +36,58 @@ import NotFound         from './pages/NotFound';
 import ProtectedRoute   from './components/ProtectedRoute';
 import AdminRoute       from './components/AdminRoute';
 
-// Layout
+// Layout & Navigation
 import Navbar from './components/Navbar';
+import LandingPage from './pages/LandingPage';
+import useAuth from './hooks/useAuth';
+import LoadingSpinner from './components/LoadingSpinner';
+
+/**
+ * RootRoute: Dynamically serves the editorial public Landing Page to guests,
+ * and the personalized neighborhood briefing (Home) to authenticated residents.
+ */
+function RootRoute() {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <LoadingSpinner />;
+  return user ? <Home /> : <LandingPage />;
+}
 
 function App() {
   return (
     <AuthProvider>
       <SocketProvider>
         <BrowserRouter>
-          <Navbar />
-          <main>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
+          <div className="min-h-screen bg-[var(--color-bg)]">
+            <Navbar />
+            <main>
+              <Routes>
+                {/* Dynamic root route */}
+                <Route path="/" element={<RootRoute />} />
 
-              {/* Protected routes (must be logged in) */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/"               element={<Home />} />
-                <Route path="/map"            element={<MapPage />} />
-                <Route path="/report"         element={<ReportIncident />} />
-                <Route path="/incidents/:id"  element={<IncidentDetails />} />
-                <Route path="/notifications"  element={<Notifications />} />
-                <Route path="/profile"        element={<Profile />} />
-                <Route path="/digest"         element={<Digest />} />
-              </Route>
+                {/* Public auth routes */}
+                <Route path="/login"    element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-              {/* Admin-only routes (must be logged in AND role === 'admin') */}
-              <Route element={<AdminRoute />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-              </Route>
+                {/* Protected routes (must be logged in) */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/map"            element={<MapPage />} />
+                  <Route path="/report"         element={<ReportIncident />} />
+                  <Route path="/incidents/:id"  element={<IncidentDetails />} />
+                  <Route path="/notifications"  element={<Notifications />} />
+                  <Route path="/profile"        element={<Profile />} />
+                  <Route path="/digest"         element={<Digest />} />
+                </Route>
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
+                {/* Admin-only routes (must be logged in AND role === 'admin') */}
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                </Route>
+
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+          </div>
         </BrowserRouter>
       </SocketProvider>
     </AuthProvider>

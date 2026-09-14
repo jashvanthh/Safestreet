@@ -60,10 +60,21 @@ const INCIDENT_CATEGORIES = [
 
 const isValidCategory = (category) => INCIDENT_CATEGORIES.includes(category);
 
+/**
+ * Validates incident severity level.
+ * @param {string} severity
+ * @returns {boolean}
+ */
+const SEVERITY_LEVELS = ['low', 'medium', 'high'];
+
+const isValidSeverity = (severity) => SEVERITY_LEVELS.includes(severity);
+
 module.exports = {
   isValidEmail,
   isValidPassword,
   isValidCoordinates,
   isValidCategory,
   INCIDENT_CATEGORIES,
+  isValidSeverity,
+  SEVERITY_LEVELS,
 };

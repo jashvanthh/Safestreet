@@ -44,7 +44,7 @@ beforeAll(async () => {
   // Ensure 2dsphere indexes are built in the in-memory MongoDB
   await User.init();
   await Incident.init();
-});
+}, 30000);
 
 afterAll(async () => {
   await mongoose.disconnect();
