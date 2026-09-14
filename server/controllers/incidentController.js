@@ -23,9 +23,11 @@
  */
 
 const Incident              = require('../models/Incident');
+const Notification          = require('../models/Notification');
 const { findIncidentsNear } = require('../services/geoService');
 const { deleteFile }        = require('../services/gridfsService');
-const { notifyNearbyUsers } = require('../services/notificationService');
+const { notifyNearbyUsers, getIO } = require('../services/notificationService');
+const { sendReportConfirmationEmail, sendStatusUpdateEmail } = require('../services/emailService');
 const { isValidCoordinates, isValidCategory } = require('../utils/validators');
 
 // ── Helper: strip reportedBy from response when isAnonymous ──────────────────
@@ -90,6 +92,13 @@ const createIncident = async (req, res, next) => {
     notifyNearbyUsers(incident).catch((err) =>
       console.error('Notification error (non-fatal):', err.message)
     );
+
+    // Trigger report confirmation email to the user who reported it
+    if (req.user && req.user.email) {
+      sendReportConfirmationEmail(req.user, incident).catch((err) =>
+        console.error('Email confirmation error (non-fatal):', err.message)
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -286,10 +295,45 @@ const updateIncidentStatus = async (req, res, next) => {
       req.params.id,
       { status },
       { new: true, runValidators: true }   // new:true returns the updated doc
-    );
+    ).populate('reportedBy', 'name email');
 
     if (!incident) {
       const err = new Error('Incident not found'); err.statusCode = 404; return next(err);
+    }
+
+    // Notify the original reporter via email & in-app notification
+    if (incident.reportedBy && incident.reportedBy.email) {
+      // 1. Email notification
+      sendStatusUpdateEmail(incident.reportedBy, incident, status).catch((err) =>
+        console.error('Status update email error (non-fatal):', err.message)
+      );
+
+      // 2. In-app notification & Socket.IO real-time alert
+      try {
+        const notif = await Notification.create({
+          recipient: incident.reportedBy._id,
+          incident:  incident._id,
+          message:   `Status updated to "${status.replace('_', ' ')}" on your report: "${incident.title}"`,
+        });
+
+        const io = getIO ? getIO() : null;
+        if (io) {
+          io.to(incident.reportedBy._id.toString()).emit('notification:new', {
+            _id:       notif._id,
+            message:   notif.message,
+            isRead:    false,
+            incident: {
+              _id:      incident._id,
+              title:    incident.title,
+              category: incident.category,
+              status:   incident.status,
+            },
+            createdAt: notif.createdAt,
+          });
+        }
+      } catch (err) {
+        console.error('In-app notification error on status update:', err.message);
+      }
     }
 
     res.status(200).json({

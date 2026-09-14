@@ -213,5 +213,7 @@ const syncNotificationsForUser = async (user) => {
   }
 };
 
-module.exports = { initSocket, notifyNearbyUsers, syncNotificationsForUser };
+const getIO = () => io;
+
+module.exports = { initSocket, notifyNearbyUsers, syncNotificationsForUser, getIO };
 

@@ -12,31 +12,12 @@
  *   5. Sends an HTML email digest via Nodemailer (or logs to console if SMTP is not configured).
  */
 
-const nodemailer = require('nodemailer');
+const { createTransporter } = require('./emailService');
 const User       = require('../models/User');
 const Incident   = require('../models/Incident');
 const Digest     = require('../models/Digest');
 
 const EARTH_RADIUS_KM = 6378.1;
-
-/**
- * Configure Nodemailer transport.
- * Uses environment variables if set; otherwise falls back to a graceful console logger.
- */
-const createTransporter = () => {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-    return nodemailer.createTransport({
-      host:   process.env.SMTP_HOST,
-      port:   parseInt(process.env.SMTP_PORT, 10) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-  return null;
-};
 
 /**
  * Generate a safety digest for a single user.
