@@ -2,21 +2,36 @@
  * services/emailService.js
  *
  * Centralized email notification service.
- * Uses Resend (HTTPS API) in production — immune to Render's SMTP port blocks.
- * Falls back to nodemailer SMTP for local dev if SMTP_HOST/USER/PASS are set.
+ *
+ * Priority chain (first available wins):
+ *   1. Brevo HTTP API  (BREVO_API_KEY)  — free, sends to ANY email, no domain needed
+ *   2. Resend HTTP API (RESEND_API_KEY) — free, but needs domain to send to other emails
+ *   3. Nodemailer SMTP — local dev fallback
+ *   4. Simulation log  — no credentials configured
  *
  * Capabilities:
- *   1. sendReportConfirmationEmail(user, incident)
- *   2. sendStatusUpdateEmail(user, incident, newStatus)
- *   3. sendAdminNewIncidentAlert(incident, reporter)
- *   4. sendWeeklyDigestEmail(user, digest, prevCount)
+ *   1. sendReportConfirmationEmail(user, incident)   → user who submitted
+ *   2. sendStatusUpdateEmail(user, incident, status) → user who submitted
+ *   3. sendAdminNewIncidentAlert(incident, reporter) → admin email
+ *   4. sendWeeklyDigestEmail(user, digest)           → subscribed users
  */
 
 const nodemailer = require('nodemailer');
 
-// Resend SDK — only loaded when API key is present (avoids import errors in test)
+// ── Brevo (Sendinblue) SDK ────────────────────────────────────────────────────
+// Free tier: 300 emails/day. Sends to ANY email without domain verification.
+let brevoApi = null;
+if (process.env.BREVO_API_KEY && process.env.NODE_ENV !== 'test') {
+  const SibApiV3Sdk = require('@getbrevo/brevo');
+  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+  apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+  brevoApi = apiInstance;
+}
+
+// ── Resend SDK ────────────────────────────────────────────────────────────────
+// Free tier: 3000 emails/month. Requires domain to send to other emails.
 let resendClient = null;
-if (process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
+if (!brevoApi && process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
   const { Resend } = require('resend');
   resendClient = new Resend(process.env.RESEND_API_KEY);
 }
@@ -42,11 +57,24 @@ const isDeliverableEmail = (email) => {
 };
 
 /**
- * Unified send function.
- * Priority: Resend API → Nodemailer SMTP → simulation log
+ * Unified send function — tries providers in priority order.
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-  // ── Resend (production, uses HTTPS — works on Render free tier) ──────────────
+  // ── 1. Brevo HTTP API (preferred — sends to any email, no domain needed) ─────
+  if (brevoApi) {
+    const SibApiV3Sdk = require('@getbrevo/brevo');
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    const senderName  = process.env.BREVO_SENDER_NAME  || 'SafeStreet';
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'noreply@safestreet.app';
+    sendSmtpEmail.sender  = { name: senderName, email: senderEmail };
+    sendSmtpEmail.to      = [{ email: to }];
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
+    sendSmtpEmail.textContent = text;
+    return brevoApi.sendTransacEmail(sendSmtpEmail);
+  }
+
+  // ── 2. Resend HTTPS API (fallback — needs domain for non-owner addresses) ─────
   if (resendClient) {
     const from = process.env.RESEND_FROM || 'SafeStreet <onboarding@resend.dev>';
     const data = await resendClient.emails.send({ from, to, subject, html, text });
@@ -54,7 +82,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return data;
   }
 
-  // ── Nodemailer SMTP (local dev fallback) ──────────────────────────────────────
+  // ── 3. Nodemailer SMTP (local dev) ────────────────────────────────────────────
   if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
@@ -69,15 +97,12 @@ const sendEmail = async ({ to, subject, html, text }) => {
     });
   }
 
-  // ── Simulation (no credentials configured) ────────────────────────────────────
+  // ── 4. Simulation (no credentials configured) ────────────────────────────────
   console.log(`📧 [Email Simulated] To: ${to} | Subject: ${subject}`);
   return null;
 };
 
-/**
- * Keep createTransporter exported for digestService compatibility.
- * @deprecated Use sendEmail() instead.
- */
+/** @deprecated kept for digestService compatibility */
 const createTransporter = () => null;
 
 
