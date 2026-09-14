@@ -27,7 +27,11 @@ const Notification          = require('../models/Notification');
 const { findIncidentsNear } = require('../services/geoService');
 const { deleteFile }        = require('../services/gridfsService');
 const { notifyNearbyUsers, getIO } = require('../services/notificationService');
-const { sendReportConfirmationEmail, sendStatusUpdateEmail } = require('../services/emailService');
+const {
+  sendReportConfirmationEmail,
+  sendStatusUpdateEmail,
+  sendAdminNewIncidentAlert,
+} = require('../services/emailService');
 const { isValidCoordinates, isValidCategory } = require('../utils/validators');
 
 // ── Helper: strip reportedBy from response when isAnonymous ──────────────────
@@ -99,6 +103,11 @@ const createIncident = async (req, res, next) => {
         console.error('Email confirmation error (non-fatal):', err.message)
       );
     }
+
+    // Trigger admin alert email to notify the admin of new hazard submissions
+    sendAdminNewIncidentAlert(incident, req.user).catch((err) =>
+      console.error('Admin incident alert email error (non-fatal):', err.message)
+    );
 
     res.status(201).json({
       success: true,
