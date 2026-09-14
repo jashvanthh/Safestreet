@@ -21,12 +21,15 @@ const isValidEmail = (email) => {
 
 /**
  * Validates password strength.
- * Rule: at least 6 characters (keep it simple for a PBL).
+ * Rules: 8+ chars, at least one letter, one digit or special character.
  * @param {string} password
  * @returns {boolean}
  */
 const isValidPassword = (password) => {
-  return typeof password === 'string' && password.length >= 6;
+  if (typeof password !== 'string' || password.length < 8) return false;
+  const hasLetter  = /[a-zA-Z]/.test(password);
+  const hasNumOrSp = /[\d!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+  return hasLetter && hasNumOrSp;
 };
 
 /**

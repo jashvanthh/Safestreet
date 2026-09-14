@@ -42,7 +42,7 @@ const register = async (req, res, next) => {
       const err = new Error('Invalid email address'); err.statusCode = 400; return next(err);
     }
     if (!isValidPassword(password)) {
-      const err = new Error('Password must be at least 6 characters'); err.statusCode = 400; return next(err);
+      const err = new Error('Password must be at least 8 characters and include a letter and a number or symbol'); err.statusCode = 400; return next(err);
     }
 
     // ── Check for duplicate email ─────────────────────────────────────────
