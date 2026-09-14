@@ -6,7 +6,7 @@
  * Explicitly rejects generic KPI dashboard card grids in favor of an authentic civic briefing.
  */
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   PlusCircle,
   Map,
@@ -23,6 +23,7 @@ import {
   Sliders,
   Radio,
   ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import { useSocket } from '../context/SocketContext';
@@ -71,12 +72,14 @@ const CATEGORY_META = {
 const Home = () => {
   const { user } = useAuth();
   const { unreadCount, isConnected } = useSocket();
+  const routeState = useLocation().state;
 
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'nearby'
   const [incidents, setIncidents] = useState([]);
   const [nearbyIncidents, setNearbyIncidents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasNearbySupport, setHasNearbySupport] = useState(false);
+  const [showDeletedBanner, setShowDeletedBanner] = useState(!!routeState?.deleted);
 
   const radius = user?.notificationRadius || 5;
   const userCoords = user?.notificationLocation?.coordinates;
@@ -129,7 +132,23 @@ const Home = () => {
     <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] py-6 sm:py-8 px-4 sm:px-6 lg:px-8 text-[var(--color-text-primary)]">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* ── Section: Personalized Neighborhood Briefing Bar ───────── */}
+        {/* ── Deleted Success Banner (shown after deleting a report) ── */}
+        {showDeletedBanner && (
+          <div className="p-4 bg-[var(--color-success)]/10 border border-[var(--color-success)]/25 rounded-xl flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-xs text-[var(--color-success)]">
+              <CheckCircle2 size={16} className="flex-shrink-0" strokeWidth={2.5} />
+              <span className="font-semibold">Report successfully deleted.</span>
+              <span className="text-[var(--color-text-secondary)] hidden sm:inline">The incident has been permanently removed from the SafeStreet database.</span>
+            </div>
+            <button
+              onClick={() => setShowDeletedBanner(false)}
+              className="text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors flex-shrink-0"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-5 sm:p-6 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-2xl">

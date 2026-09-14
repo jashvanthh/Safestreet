@@ -117,7 +117,7 @@ const IncidentDetails = () => {
     setDeleteError('');
     try {
       await api.delete(`/incidents/${id}`);
-      navigate('/map', { state: { deleted: true } });
+      navigate('/', { state: { deleted: true } });
     } catch (err) {
       setDeleteError(err.response?.data?.message || 'Failed to delete. Please try again.');
       setDeleteLoading(false);
