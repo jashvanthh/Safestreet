@@ -1,26 +1,28 @@
 /**
  * services/emailService.js
  *
- * Centralized email notification service using Nodemailer.
+ * Centralized email notification service.
+ * Uses Resend (HTTPS API) in production — immune to Render's SMTP port blocks.
+ * Falls back to nodemailer SMTP for local dev if SMTP_HOST/USER/PASS are set.
  *
  * Capabilities:
  *   1. sendReportConfirmationEmail(user, incident)
- *      - Sends an email to the resident confirming their incident report submission.
  *   2. sendStatusUpdateEmail(user, incident, newStatus)
- *      - Sends an email to the reporter when an admin updates the report status.
- *   3. sendWeeklyDigestEmail(user, digest, prevCount)
- *      - Dispatches the weekly neighborhood safety summary.
- *
- * Resilience:
- *   - If SMTP credentials are not yet configured in .env, it logs a simulated preview
- *     cleanly to the console without throwing or blocking HTTP requests.
+ *   3. sendAdminNewIncidentAlert(incident, reporter)
+ *   4. sendWeeklyDigestEmail(user, digest, prevCount)
  */
 
 const nodemailer = require('nodemailer');
 
+// Resend SDK — only loaded when API key is present (avoids import errors in test)
+let resendClient = null;
+if (process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
+  const { Resend } = require('resend');
+  resendClient = new Resend(process.env.RESEND_API_KEY);
+}
+
 /**
  * Helper to check if an email address is real or a dummy/test domain.
- * Prevents Google SMTP from rejecting fake domains like safestreet.test or example.com.
  */
 const isDeliverableEmail = (email) => {
   if (!email || typeof email !== 'string') return false;
@@ -40,29 +42,44 @@ const isDeliverableEmail = (email) => {
 };
 
 /**
- * Configure Nodemailer transport.
- * Uses environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT).
+ * Unified send function.
+ * Priority: Resend API → Nodemailer SMTP → simulation log
  */
-const createTransporter = () => {
-  // Never dispatch real emails across SMTP in unit/integration test suites (e.g. Jest)
-  if (process.env.NODE_ENV === 'test') {
-    return null;
+const sendEmail = async ({ to, subject, html, text }) => {
+  // ── Resend (production, uses HTTPS — works on Render free tier) ──────────────
+  if (resendClient) {
+    const from = process.env.RESEND_FROM || 'SafeStreet <onboarding@resend.dev>';
+    const data = await resendClient.emails.send({ from, to, subject, html, text });
+    if (data.error) throw new Error(data.error.message);
+    return data;
   }
 
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
+  // ── Nodemailer SMTP (local dev fallback) ──────────────────────────────────────
+  if (process.env.NODE_ENV !== 'test' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const transporter = nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
       port:   parseInt(process.env.SMTP_PORT, 10) || 587,
       secure: process.env.SMTP_SECURE === 'true',
-      family: 4,   // Force IPv4 — Render's IPv6 routing to Gmail times out
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
+      family: 4,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+    return transporter.sendMail({
+      from: `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+      to, subject, html, text,
     });
   }
+
+  // ── Simulation (no credentials configured) ────────────────────────────────────
+  console.log(`📧 [Email Simulated] To: ${to} | Subject: ${subject}`);
   return null;
 };
+
+/**
+ * Keep createTransporter exported for digestService compatibility.
+ * @deprecated Use sendEmail() instead.
+ */
+const createTransporter = () => null;
+
 
 /**
  * Send an email confirmation to the user after submitting an incident report.
@@ -113,17 +130,8 @@ const sendReportConfirmationEmail = async (user, incident) => {
     </div>
   `;
 
-  if (!transporter) {
-    console.log(
-      `📧 [Email Service] Simulated report confirmation to ${user.email} for "${incident.title}".\n` +
-      `   💡 (To deliver real emails, add your Gmail & App Password in server/.env under SMTP_USER and SMTP_PASS)`
-    );
-    return;
-  }
-
   try {
-    await transporter.sendMail({
-      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+    await sendEmail({
       to:      user.email,
       subject,
       text:    `Hello ${user.name || 'Resident'},\n\nThank you for helping keep your community safe. Your report "${incident.title}" has been successfully logged on SafeStreet.\n\nCategory: ${categoryName}\nStatus: REPORTED\nDescription: ${incident.description}\n\nView Incident: ${incidentUrl}`,
@@ -145,7 +153,6 @@ const sendReportConfirmationEmail = async (user, incident) => {
 const sendStatusUpdateEmail = async (user, incident, newStatus) => {
   if (!user || !user.email || !isDeliverableEmail(user.email)) return;
 
-  const transporter = createTransporter();
   const clientUrl   = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
   const incidentUrl = `${clientUrl}/incidents/${incident._id}`;
   const subject     = `🔔 Status Update: "${incident.title}" is now ${newStatus.replace('_', ' ').toUpperCase()}`;
@@ -208,17 +215,8 @@ const sendStatusUpdateEmail = async (user, incident, newStatus) => {
     </div>
   `;
 
-  if (!transporter) {
-    console.log(
-      `📧 [Email Service] Simulated status update email to ${user.email} for "${incident.title}" (Status: ${newStatus}).\n` +
-      `   💡 (To deliver real emails, add your Gmail & App Password in server/.env under SMTP_USER and SMTP_PASS)`
-    );
-    return;
-  }
-
   try {
-    await transporter.sendMail({
-      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+    await sendEmail({
       to:      user.email,
       subject,
       text:    `Hello ${user.name || 'Resident'},\n\nThe status of your reported incident "${incident.title}" has been updated to: ${newStatus.replace('_', ' ').toUpperCase()}.\n\nView Incident: ${incidentUrl}`,
@@ -240,7 +238,6 @@ const sendAdminNewIncidentAlert = async (incident, reporter) => {
   const adminEmail = process.env.ADMIN_EMAIL || 'jashvanth542@gmail.com';
   if (!adminEmail) return;
 
-  const transporter = createTransporter();
   const clientUrl   = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
   const incidentUrl = `${clientUrl}/incidents/${incident._id}`;
   const adminUrl    = `${clientUrl}/admin`;
@@ -317,16 +314,8 @@ const sendAdminNewIncidentAlert = async (incident, reporter) => {
     </div>
   `;
 
-  if (!transporter) {
-    console.log(
-      `📧 [Email Service] Simulated Admin Alert to ${adminEmail} for new incident "${incident.title}".`
-    );
-    return;
-  }
-
   try {
-    await transporter.sendMail({
-      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+    await sendEmail({
       to:      adminEmail,
       subject,
       text:    `[Admin Alert] New Incident Reported: "${incident.title}"\n\nCategory: ${categoryName}\nCoordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}\nReporter: ${reporter?.name || 'Resident'} (${reporter?.email || 'N/A'})\nDescription: ${incident.description || 'No description'}\n\nReview on SafeStreet: ${adminUrl}`,
