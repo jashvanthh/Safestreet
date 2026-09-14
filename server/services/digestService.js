@@ -12,7 +12,7 @@
  *   5. Sends an HTML email digest via Nodemailer (or logs to console if SMTP is not configured).
  */
 
-const { createTransporter } = require('./emailService');
+const { createTransporter, isDeliverableEmail } = require('./emailService');
 const User       = require('../models/User');
 const Incident   = require('../models/Incident');
 const Digest     = require('../models/Digest');
@@ -108,6 +108,7 @@ const generateDigestForUser = async (user, customWeekStart, customWeekEnd) => {
  * Sends the email via Nodemailer or logs to console.
  */
 const dispatchDigestEmail = async (user, digest, prevCount) => {
+  if (!user || !user.email || !isDeliverableEmail(user.email)) return;
   const transporter = createTransporter();
   const radiusKm    = user.notificationRadius || 2;
   const trendLabel  =

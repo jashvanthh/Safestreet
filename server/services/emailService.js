@@ -19,10 +19,34 @@
 const nodemailer = require('nodemailer');
 
 /**
+ * Helper to check if an email address is real or a dummy/test domain.
+ * Prevents Google SMTP from rejecting fake domains like safestreet.test or example.com.
+ */
+const isDeliverableEmail = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  const lower = email.toLowerCase().trim();
+  if (
+    lower.endsWith('.test') ||
+    lower.endsWith('.example') ||
+    lower.endsWith('.invalid') ||
+    lower.endsWith('.localhost') ||
+    lower.includes('@safestreet.test')
+  ) {
+    return false;
+  }
+  return true;
+};
+
+/**
  * Configure Nodemailer transport.
  * Uses environment variables (SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT).
  */
 const createTransporter = () => {
+  // Never dispatch real emails across SMTP in unit/integration test suites (e.g. Jest)
+  if (process.env.NODE_ENV === 'test') {
+    return null;
+  }
+
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     return nodemailer.createTransport({
       host:   process.env.SMTP_HOST,
@@ -44,7 +68,7 @@ const createTransporter = () => {
  * @param {Object} incident - Created incident document
  */
 const sendReportConfirmationEmail = async (user, incident) => {
-  if (!user || !user.email) return;
+  if (!user || !user.email || !isDeliverableEmail(user.email)) return;
 
   const transporter = createTransporter();
   const clientUrl   = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
@@ -115,7 +139,7 @@ const sendReportConfirmationEmail = async (user, incident) => {
  * @param {string} newStatus - 'reported' | 'under_review' | 'resolved'
  */
 const sendStatusUpdateEmail = async (user, incident, newStatus) => {
-  if (!user || !user.email) return;
+  if (!user || !user.email || !isDeliverableEmail(user.email)) return;
 
   const transporter = createTransporter();
   const clientUrl   = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
@@ -313,5 +337,6 @@ module.exports = {
   sendReportConfirmationEmail,
   sendStatusUpdateEmail,
   sendAdminNewIncidentAlert,
+  isDeliverableEmail,
 };
 
