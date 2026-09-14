@@ -54,6 +54,7 @@ const createTransporter = () => {
       host:   process.env.SMTP_HOST,
       port:   parseInt(process.env.SMTP_PORT, 10) || 587,
       secure: process.env.SMTP_SECURE === 'true',
+      family: 4,   // Force IPv4 — Render's IPv6 routing to Gmail times out
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,

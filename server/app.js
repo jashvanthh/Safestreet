@@ -54,6 +54,12 @@ const fileRoutes         = require('./routes/files');
 
 const app = express();
 
+// ── 0. Trust proxy ────────────────────────────────────────────────────────────
+// Render (and most cloud platforms) sit behind a reverse proxy that sets the
+// X-Forwarded-For header. Without this, express-rate-limit throws a
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR ValidationError and can't identify IPs.
+app.set('trust proxy', 1);
+
 // ── 1. Security headers ───────────────────────────────────────────────────────
 app.use(helmet());
 
