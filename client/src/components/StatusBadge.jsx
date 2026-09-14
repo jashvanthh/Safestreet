@@ -1,31 +1,30 @@
 /**
  * components/StatusBadge.jsx
  *
- * Reusable pill badge for incident status.
- * Used in IncidentCard, IncidentDetails, AdminDashboard.
- *
- * Status → color mapping matches the constants.js definition.
+ * Status badge with semantic dot indicator for the Light Civic-Tech system.
  */
-const STATUS_STYLES = {
-  reported:     'bg-red-500/20 text-red-400 border border-red-500/30',
-  under_review: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
-  resolved:     'bg-green-500/20 text-green-400 border border-green-500/30',
+import Badge from './ui/Badge';
+
+const STATUS_VARIANTS = {
+  reported: 'danger',
+  under_review: 'warning',
+  resolved: 'success',
 };
 
 const STATUS_LABELS = {
-  reported:     'Reported',
+  reported: 'Reported',
   under_review: 'Under Review',
-  resolved:     'Resolved',
+  resolved: 'Resolved',
 };
 
-const StatusBadge = ({ status }) => {
-  const style = STATUS_STYLES[status] || 'bg-slate-700 text-slate-300';
+const StatusBadge = ({ status, size = 'sm' }) => {
+  const variant = STATUS_VARIANTS[status] || 'neutral';
   const label = STATUS_LABELS[status] || status;
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style}`}>
+    <Badge variant={variant} size={size} dot>
       {label}
-    </span>
+    </Badge>
   );
 };
 

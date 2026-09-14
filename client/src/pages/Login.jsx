@@ -1,45 +1,38 @@
 /**
  * pages/Login.jsx
  *
- * What this demonstrates:
- *   - useState for controlled form inputs
- *   - useState for loading + error states (always have these in forms)
- *   - Calling api.js (Axios) to POST /api/auth/login
- *   - useAuth().login() to persist token + user to context + localStorage
- *   - useNavigate() to redirect after login
- *   - Form validation with user-friendly error messages
- *   - Redirecting already-logged-in users away from the login page
+ * Polished authentication interface with official SafeStreet tokens.
  */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import api from '../services/api';
 import useAuth from '../hooks/useAuth';
+import { Card, Button, Input } from '../components/ui';
 
 const Login = () => {
   const { login, user } = useAuth();
-  const navigate        = useNavigate();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ email: '', password: '' });
-  const [error, setError]       = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // If already logged in, redirect away
   useEffect(() => {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
 
   const handleChange = (e) => {
-    // Clears error on any input change — better UX than stale error messages
     setError('');
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();   // Prevent default browser form submission (page reload)
+    e.preventDefault();
     setError('');
 
     if (!formData.email || !formData.password) {
-      setError('Email and password are required');
+      setError('Email address and password are required');
       return;
     }
 
@@ -47,91 +40,106 @@ const Login = () => {
     try {
       const res = await api.post('/auth/login', formData);
       const { token, user: userData } = res.data.data;
-      login(token, userData);          // Persist to context + localStorage
+      login(token, userData);
       navigate(userData.role === 'admin' ? '/admin' : '/');
     } catch (err) {
-      // err.response.data.message comes from our { success: false, message } shape
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <img src="/logo.png" alt="SafeStreet" className="h-16 w-auto mx-auto mb-3 object-contain" />
-          <h1 className="text-3xl font-bold text-white mb-1">Welcome back</h1>
-          <p className="text-slate-400 text-sm">Sign in to SafeStreet</p>
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <img
+            src="/logo.png"
+            alt="SafeStreet"
+            className="h-12 w-auto mx-auto object-contain"
+          />
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Sign In to SafeStreet
+          </h1>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            Neighborhood Safety Intelligence & Incident Platform
+          </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
-
-          {/* Error banner */}
+        {/* Form Container */}
+        <Card elevated noPadding className="p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-              {error}
+            <div className="p-3 bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/25 rounded-lg flex items-center gap-2 text-xs text-[var(--color-danger)]">
+              <AlertCircle size={15} className="flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            <div>
-              <label htmlFor="login-email" className="block text-sm text-slate-300 mb-1.5">
-                Email address
-              </label>
-              <input
-                id="login-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="you@example.com"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <Input
+              id="login-email"
+              name="email"
+              type="email"
+              label="Email Address"
+              required
+              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="resident@neighborhood.org"
+              icon={Mail}
+            />
 
-            <div>
-              <label htmlFor="login-password" className="block text-sm text-slate-300 mb-1.5">
-                Password
-              </label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+            <Input
+              id="login-password"
+              name="password"
+              type="password"
+              label="Password"
+              required
+              autoComplete="current-password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              icon={Lock}
+            />
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
-                </>
-              ) : 'Sign in'}
-            </button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={isLoading}
+                className="w-full gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Signing in…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
 
-          <p className="text-center text-slate-400 text-sm mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium">
-              Register
-            </Link>
-          </p>
-        </div>
+          <div className="pt-3 border-t border-[var(--color-border)] text-center">
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Don't have an account yet?{' '}
+              <Link
+                to="/register"
+                className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium transition-colors"
+              >
+                Register here
+              </Link>
+            </p>
+          </div>
+        </Card>
+
       </div>
     </div>
   );

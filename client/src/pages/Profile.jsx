@@ -1,41 +1,36 @@
 /**
  * pages/Profile.jsx
  *
- * Lets the user update their notification location and radius.
- * These two settings control which incidents trigger a proximity alert.
- *
- * HOW NOTIFICATION LOCATION WORKS (explain in viva):
- *   1. User sets their "home" location here (or during Register)
- *   2. When a new incident is created, the server runs:
- *      notifyNearbyUsers(incident) → finds users within their own radius
- *   3. If the incident is within THIS user's notificationRadius km of their
- *      notificationLocation → they get a Notification + socket event
- *
- * The notificationLocation is stored as GeoJSON Point in MongoDB.
- * We convert: LocationPicker {lat, lng} → GeoJSON {type:'Point', coordinates:[lng,lat]}
- *
- * The radius slider controls how large the user's "alert zone" is.
+ * SafeStreet — Resident Profile & Perimeter Settings.
+ * Clean settings interface with grouped sections.
+ * Explicitly avoids "cards everywhere" in favor of cohesive civic settings groups.
  */
 import { useState, useEffect } from 'react';
+import {
+  Sliders,
+  CheckCircle2,
+  AlertCircle,
+  Save,
+  User,
+  Shield,
+  Compass,
+} from 'lucide-react';
 import api from '../services/api';
 import useAuth from '../hooks/useAuth';
 import LocationPicker from '../components/LocationPicker';
+import { Button } from '../components/ui';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
 
-  // Location state: we display in Leaflet [lat,lng] order
-  const [location, setLocation] = useState(null);   // { lat, lng }
-  const [radius,   setRadius]   = useState(2);       // km
+  const [location, setLocation] = useState(null);
+  const [radius, setRadius] = useState(2);
   const [isSaving, setIsSaving] = useState(false);
-  const [success,  setSuccess]  = useState('');
-  const [error,    setError]    = useState('');
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
-  // Initialise from current user data
   useEffect(() => {
     if (!user) return;
-
-    // notificationLocation is GeoJSON [lng, lat] — swap for Leaflet
     const coords = user.notificationLocation?.coordinates;
     if (coords && !(coords[0] === 0 && coords[1] === 0)) {
       setLocation({ lat: coords[1], lng: coords[0] });
@@ -47,7 +42,7 @@ const Profile = () => {
 
   const handleSave = async () => {
     if (!location) {
-      setError('Please pin your location on the map first.');
+      setError('Please pin your neighborhood location on the map before saving.');
       return;
     }
     setError('');
@@ -57,8 +52,8 @@ const Profile = () => {
     try {
       const res = await api.patch('/auth/profile', {
         notificationLocation: {
-          type:        'Point',
-          coordinates: [location.lng, location.lat],  // GeoJSON: [lng, lat]
+          type: 'Point',
+          coordinates: [location.lng, location.lat],
         },
         notificationRadius: radius,
       });
@@ -67,128 +62,191 @@ const Profile = () => {
         updateUser(res.data.data.user);
       }
 
-      setSuccess(`Settings saved! You will receive alerts for incidents within ${radius} km of this location.`);
+      setSuccess(`Perimeter updated successfully. Proximity alerts are now active within ${radius} km of your pin.`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save. Please try again.');
+      setError(err.response?.data?.message || 'Failed to update perimeter settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 py-8 px-4">
-      <div className="max-w-xl mx-auto">
+    <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] py-8 px-4 sm:px-6 lg:px-8 text-[var(--color-text-primary)]">
+      <div className="max-w-3xl mx-auto space-y-8">
 
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-2xl">
-            {user?.name?.[0]?.toUpperCase() || '👤'}
+        {/* ── Page Header ────────────────────────────────────────────── */}
+        <div className="space-y-1 pb-4 border-b border-[var(--color-border)]">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+            <Sliders size={13} strokeWidth={2.5} />
+            <span>Platform Configuration</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">{user?.name}</h1>
-            <p className="text-slate-400 text-sm">{user?.email}</p>
-            <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${
-              user?.role === 'admin'
-                ? 'bg-purple-500/20 text-purple-400'
-                : 'bg-blue-500/20 text-blue-400'
-            }`}>
-              {user?.role === 'admin' ? '⚙️ Admin' : '🏘️ Resident'}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Resident Profile & Settings
+          </h1>
+          <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed">
+            Manage your neighborhood perimeter anchor, proximity dispatch distance, and account credentials.
+          </p>
+        </div>
+
+        {/* ── Grouped Section 1: Resident Identity ───────────────────── */}
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-1.5">
+            <User size={14} className="text-[var(--color-primary)]" />
+            <span>Resident Identity</span>
+          </h2>
+
+          <div className="p-5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[var(--color-primary-light)] border border-[var(--color-primary)]/20 flex items-center justify-center text-lg font-bold text-[var(--color-primary)] flex-shrink-0">
+                {user?.name?.[0]?.toUpperCase() || 'R'}
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="text-base font-bold text-[var(--color-text-primary)]">
+                  {user?.name}
+                </h3>
+                <p className="text-xs text-[var(--color-text-secondary)] font-mono">
+                  {user?.email}
+                </p>
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)]">
+                    <Shield size={11} className="text-[var(--color-primary)]" />
+                    <span className="capitalize">{user?.role === 'admin' ? 'Authority Administrator' : 'Verified Resident'}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[11px] font-mono text-[var(--color-text-muted)] sm:text-right">
+              Resident ID: {user?._id?.slice(-8) || '—'}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Grouped Section 2: Perimeter Calibration ──────────────── */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-1.5">
+              <Compass size={14} className="text-[var(--color-primary)]" />
+              <span>Monitoring Perimeter & Alert Pin</span>
+            </h2>
+            <span className="text-[11px] font-mono text-[var(--color-primary)] font-semibold">
+              {radius} km Radius
             </span>
           </div>
-        </div>
 
-        {/* Settings card */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-6">
-          <h2 className="text-white font-semibold text-lg">🔔 Notification Settings</h2>
-          <p className="text-slate-400 text-sm -mt-4">
-            Set your location so SafeStreet can alert you about incidents nearby.
-          </p>
-
-          {/* Success / Error banners */}
-          {success && (
-            <div className="px-4 py-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
-              ✅ {success}
-            </div>
-          )}
-          {error && (
-            <div className="px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Location picker */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Your notification location
-            </label>
-            <LocationPicker
-              value={location}
-              onChange={(coords) => { setLocation(coords); setSuccess(''); setError(''); }}
-            />
-            <p className="text-slate-500 text-xs mt-2">
-              Click the map or use "Use my location" to set where you want alerts centred.
+          <div className="p-5 sm:p-6 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs space-y-5">
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              SafeStreet uses this location anchor to calculate distance dispatches. When an incident is filed within your chosen radius, instant proximity alerts are pushed to your account.
             </p>
-          </div>
 
-          {/* Radius slider */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-slate-300">
-                Alert radius
+            {/* Feedback Banners */}
+            {success && (
+              <div className="p-3 bg-[var(--color-primary-light)] border border-[var(--color-primary)]/30 rounded-xl text-xs text-[var(--color-primary)] flex items-center gap-2">
+                <CheckCircle2 size={16} className="flex-shrink-0" />
+                <span className="font-medium">{success}</span>
+              </div>
+            )}
+            {error && (
+              <div className="p-3 bg-[var(--color-danger-light)] border border-[var(--color-danger)]/30 rounded-xl text-xs text-[var(--color-danger)] flex items-center gap-2">
+                <AlertCircle size={16} className="flex-shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
+            )}
+
+            {/* Map Picker */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                Pinned Anchor Location
               </label>
-              <span className="text-blue-400 font-semibold text-sm">{radius} km</span>
+              <LocationPicker
+                value={location}
+                onChange={(coords) => {
+                  setLocation(coords);
+                  setSuccess('');
+                  setError('');
+                }}
+              />
             </div>
-            <input
-              type="range"
-              min="0.5"
-              max="50"
-              step="0.5"
-              value={radius}
-              onChange={(e) => setRadius(parseFloat(e.target.value))}
-              className="w-full accent-blue-500"
-            />
-            <div className="flex justify-between text-slate-500 text-xs mt-1">
-              <span>0.5 km</span>
-              <span>50 km</span>
-            </div>
-            <p className="text-slate-500 text-xs mt-2">
-              You'll receive alerts for incidents reported within <strong className="text-slate-300">{radius} km</strong> of your pinned location.
-            </p>
-          </div>
 
-          {/* Save button */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !location}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            {isSaving ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Saving…
-              </>
-            ) : '💾 Save Notification Settings'}
-          </button>
-        </div>
+            {/* Radius Slider */}
+            <div className="space-y-2 pt-3 border-t border-[var(--color-border-subtle)]">
+              <div className="flex items-center justify-between text-xs font-semibold text-[var(--color-text-secondary)]">
+                <span>Perimeter Dispatch Radius</span>
+                <span className="text-sm font-bold font-mono text-[var(--color-primary)]">
+                  {radius} km
+                </span>
+              </div>
 
-        {/* Account info (read-only) */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5 mt-4 space-y-3">
-          <h2 className="text-white font-semibold">Account Details</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-slate-400">
-              <span>Name</span>
-              <span className="text-white">{user?.name}</span>
+              <input
+                type="range"
+                min="0.5"
+                max="50"
+                step="0.5"
+                value={radius}
+                onChange={(e) => {
+                  setRadius(parseFloat(e.target.value));
+                  setSuccess('');
+                }}
+                className="w-full accent-[var(--color-primary)] cursor-pointer"
+              />
+
+              <div className="flex justify-between text-[10px] font-mono text-[var(--color-text-muted)]">
+                <span>0.5 km (Immediate block)</span>
+                <span>25 km (Sector)</span>
+                <span>50 km (Metro)</span>
+              </div>
             </div>
-            <div className="flex justify-between text-slate-400">
-              <span>Email</span>
-              <span className="text-white">{user?.email}</span>
-            </div>
-            <div className="flex justify-between text-slate-400">
-              <span>Role</span>
-              <span className="text-white capitalize">{user?.role}</span>
+
+            {/* Save Button */}
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSave}
+                disabled={isSaving || !location}
+                className="w-full sm:w-auto gap-2 shadow-sm"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Saving Parameters…</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} />
+                    <span>Save Perimeter Parameters</span>
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* ── Grouped Section 3: Account Specifications ──────────────── */}
+        <section className="space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-primary)]">
+            Account Specifications
+          </h2>
+
+          <div className="rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xs divide-y divide-[var(--color-border-subtle)] text-xs overflow-hidden">
+            <div className="flex justify-between p-3.5 text-[var(--color-text-secondary)]">
+              <span>Full Name</span>
+              <strong className="text-[var(--color-text-primary)]">{user?.name}</strong>
+            </div>
+            <div className="flex justify-between p-3.5 text-[var(--color-text-secondary)]">
+              <span>Registered Email</span>
+              <strong className="text-[var(--color-text-primary)] font-mono">{user?.email}</strong>
+            </div>
+            <div className="flex justify-between p-3.5 text-[var(--color-text-secondary)]">
+              <span>Authority Role</span>
+              <strong className="text-[var(--color-text-primary)] capitalize">{user?.role}</strong>
+            </div>
+            <div className="flex justify-between p-3.5 text-[var(--color-text-secondary)]">
+              <span>Session Authorization</span>
+              <strong className="text-[var(--color-primary)] font-medium">JWT Secure Verified</strong>
+            </div>
+          </div>
+        </section>
 
       </div>
     </div>

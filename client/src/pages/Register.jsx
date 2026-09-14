@@ -1,31 +1,30 @@
 /**
  * pages/Register.jsx
  *
- * Same pattern as Login with extras:
- *   - Name field
- *   - Password confirmation (client-side only — server doesn't need it)
- *   - Optional notification location (lat/lng) — uses browser geolocation API
- *     If user allows, we pre-fill their location for proximity alerts.
- *     If they deny, they can set it later in Profile.
+ * Registration interface with geolocation onboarding and official SafeStreet tokens.
  */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, Lock, AlertCircle, ArrowRight, MapPin, CheckCircle2 } from 'lucide-react';
 import api from '../services/api';
 import useAuth from '../hooks/useAuth';
+import { Card, Button, Input } from '../components/ui';
 
 const Register = () => {
   const { login, user } = useAuth();
-  const navigate        = useNavigate();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', confirmPassword: '',
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
-  const [error, setError]       = useState('');
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [geoStatus, setGeoStatus] = useState('idle'); // idle | fetching | got | denied
-  const [coords, setCoords]      = useState(null);    // { lat, lng }
+  const [geoStatus, setGeoStatus] = useState('idle'); // 'idle' | 'fetching' | 'got' | 'denied'
+  const [coords, setCoords] = useState(null);
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
@@ -35,7 +34,6 @@ const Register = () => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Ask for geolocation to pre-fill notification location
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setGeoStatus('denied');
@@ -47,7 +45,8 @@ const Register = () => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setGeoStatus('got');
       },
-      () => setGeoStatus('denied')
+      () => setGeoStatus('denied'),
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
@@ -57,21 +56,19 @@ const Register = () => {
 
     const { name, email, password, confirmPassword } = formData;
 
-    // Client-side validation
-    if (!name.trim())                    return setError('Name is required');
-    if (!email)                          return setError('Email is required');
-    if (password.length < 6)            return setError('Password must be at least 6 characters');
-    if (password !== confirmPassword)   return setError('Passwords do not match');
+    if (!name.trim()) return setError('Please enter your full name');
+    if (!email.trim()) return setError('Please enter a valid email address');
+    if (password.length < 6) return setError('Password must be at least 6 characters long');
+    if (password !== confirmPassword) return setError('Passwords do not match');
 
     setIsLoading(true);
     try {
-      const payload = { name: name.trim(), email, password };
+      const payload = { name: name.trim(), email: email.trim(), password };
 
-      // Include geolocation if user allowed it
       if (coords) {
         payload.notificationLocation = {
           type: 'Point',
-          coordinates: [coords.lng, coords.lat],   // GeoJSON: [lng, lat]
+          coordinates: [coords.lng, coords.lat],
         };
       }
 
@@ -87,104 +84,158 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-[calc(100vh-4rem)] bg-[var(--color-bg)] flex items-center justify-center p-4 py-8">
+      <div className="w-full max-w-md space-y-6">
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <img src="/logo.png" alt="SafeStreet" className="h-16 w-auto mx-auto mb-3 object-contain" />
-          <h1 className="text-3xl font-bold text-white mb-1">Join SafeStreet</h1>
-          <p className="text-slate-400 text-sm">Help keep your neighborhood safe</p>
+        {/* Brand Header */}
+        <div className="text-center space-y-2">
+          <img
+            src="/logo.png"
+            alt="SafeStreet"
+            className="h-12 w-auto mx-auto object-contain"
+          />
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
+            Create an Account
+          </h1>
+          <p className="text-xs text-[var(--color-text-secondary)]">
+            Join the neighborhood safety intelligence network
+          </p>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
-
+        {/* Form Container */}
+        <Card elevated noPadding className="p-6 sm:p-8 space-y-5">
           {error && (
-            <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-              {error}
+            <div className="p-3 bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/25 rounded-lg flex items-center gap-2 text-xs text-[var(--color-danger)]">
+              <AlertCircle size={15} className="flex-shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <div>
-              <label htmlFor="reg-name" className="block text-sm text-slate-300 mb-1.5">Full name</label>
-              <input
-                id="reg-name" name="name" type="text" autoComplete="name"
-                value={formData.name} onChange={handleChange} placeholder="Jane Smith"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+            <Input
+              id="reg-name"
+              name="name"
+              label="Full Name"
+              required
+              autoComplete="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Jane Resident"
+              icon={User}
+            />
 
-            <div>
-              <label htmlFor="reg-email" className="block text-sm text-slate-300 mb-1.5">Email address</label>
-              <input
-                id="reg-email" name="email" type="email" autoComplete="email"
-                value={formData.email} onChange={handleChange} placeholder="you@example.com"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+            <Input
+              id="reg-email"
+              name="email"
+              type="email"
+              label="Email Address"
+              required
+              autoComplete="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="jane@example.com"
+              icon={Mail}
+            />
 
-            <div>
-              <label htmlFor="reg-password" className="block text-sm text-slate-300 mb-1.5">Password</label>
-              <input
-                id="reg-password" name="password" type="password" autoComplete="new-password"
-                value={formData.password} onChange={handleChange} placeholder="Min. 6 characters"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+            <Input
+              id="reg-password"
+              name="password"
+              type="password"
+              label="Password"
+              required
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="At least 6 characters"
+              icon={Lock}
+            />
 
-            <div>
-              <label htmlFor="reg-confirm" className="block text-sm text-slate-300 mb-1.5">Confirm password</label>
-              <input
-                id="reg-confirm" name="confirmPassword" type="password" autoComplete="new-password"
-                value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-            </div>
+            <Input
+              id="reg-confirm"
+              name="confirmPassword"
+              type="password"
+              label="Confirm Password"
+              required
+              autoComplete="new-password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Re-enter password"
+              icon={Lock}
+            />
 
-            {/* Geolocation consent */}
-            <div className="bg-slate-900/60 border border-slate-700 rounded-lg p-4">
-              <p className="text-slate-300 text-sm mb-2 font-medium">📍 Notification location</p>
-              <p className="text-slate-500 text-xs mb-3">
-                Allow location access to receive alerts about incidents near you.
-                You can update this later in your profile.
+            {/* Geolocation Onboarding */}
+            <div className="p-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] space-y-2 text-xs">
+              <div className="flex items-center gap-1.5 font-semibold text-[var(--color-text-primary)]">
+                <MapPin size={14} className="text-[var(--color-primary)]" />
+                <span>Default Notification Location</span>
+              </div>
+              <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">
+                Allow location access to receive proximity alerts for incidents near your home. You can modify this pin or radius anytime in Profile.
               </p>
+
               {geoStatus === 'idle' && (
-                <button type="button" onClick={requestLocation}
-                  className="text-blue-400 hover:text-blue-300 text-sm underline-offset-2 hover:underline">
-                  Allow location access
+                <button
+                  type="button"
+                  onClick={requestLocation}
+                  className="text-xs font-semibold text-[var(--color-primary)] hover:underline cursor-pointer pt-0.5"
+                >
+                  Enable Location Detection
                 </button>
               )}
-              {geoStatus === 'fetching' && <p className="text-yellow-400 text-xs">Getting location…</p>}
+              {geoStatus === 'fetching' && (
+                <span className="text-[11px] text-[var(--color-warning)] font-mono">
+                  Detecting GPS coordinates…
+                </span>
+              )}
               {geoStatus === 'got' && (
-                <p className="text-green-400 text-xs">
-                  ✅ Location captured ({coords.lat.toFixed(4)}, {coords.lng.toFixed(4)})
-                </p>
+                <div className="inline-flex items-center gap-1 text-[11px] text-[var(--color-success)] font-medium bg-[var(--color-success)]/10 px-2 py-0.5 rounded">
+                  <CheckCircle2 size={12} />
+                  <span>Pinned: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</span>
+                </div>
               )}
               {geoStatus === 'denied' && (
-                <p className="text-slate-500 text-xs">Location denied — you can set it later in Profile.</p>
+                <span className="text-[11px] text-[var(--color-text-muted)] block">
+                  Location access denied. You can manually set your pin in Profile settings later.
+                </span>
               )}
             </div>
 
-            <button
-              type="submit" disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2"
-            >
-              {isLoading ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating account…
-                </>
-              ) : 'Create account'}
-            </button>
+            <div className="pt-2">
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={isLoading}
+                className="w-full gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Creating Account…</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Create SafeStreet Account</span>
+                    <ArrowRight size={15} />
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
 
-          <p className="text-center text-slate-400 text-sm mt-6">
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">Sign in</Link>
-          </p>
-        </div>
+          <div className="pt-3 border-t border-[var(--color-border)] text-center">
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              Already have an account?{' '}
+              <Link
+                to="/login"
+                className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-medium transition-colors"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </Card>
+
       </div>
     </div>
   );

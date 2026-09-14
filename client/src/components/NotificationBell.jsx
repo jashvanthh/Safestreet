@@ -1,13 +1,10 @@
 /**
  * components/NotificationBell.jsx
  *
- * Shows the notification icon in the Navbar with an unread count badge.
- * Reads unreadCount from SocketContext — no local state needed.
- *
- * The badge disappears when count reaches 0 (user has read all).
- * Clicking navigates to /notifications.
+ * Professional SVG notification bell with unread count badge and live socket indicator.
  */
 import { Link } from 'react-router-dom';
+import { Bell } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 
 const NotificationBell = () => {
@@ -17,25 +14,27 @@ const NotificationBell = () => {
     <Link
       to="/notifications"
       id="notification-bell"
-      className="relative flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors"
-      title={isConnected ? 'Notifications (live)' : 'Notifications'}
+      className="relative p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors inline-flex items-center justify-center group"
+      title={isConnected ? 'Notifications (Live Connected)' : 'Notifications (Connecting…)'}
+      aria-label="View notifications"
     >
-      {/* Bell icon — animated pulse when connected and has unread */}
-      <span className={`text-lg ${unreadCount > 0 && isConnected ? 'animate-bounce' : ''}`}>
-        🔔
-      </span>
+      <Bell size={18} strokeWidth={2} className="transition-transform group-hover:scale-105" />
 
-      {/* Unread count badge */}
+      {/* Unread Count Badge */}
       {unreadCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">
-          {unreadCount > 9 ? '9+' : unreadCount}
+        <span className="absolute -top-0.5 -right-0.5 bg-[var(--color-danger)] text-white text-[10px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center leading-none shadow-xs">
+          {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}
 
-      {/* Live connection indicator (tiny green dot) */}
-      {isConnected && (
-        <span className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-green-400 rounded-full" />
-      )}
+      {/* Live Socket Connection Dot */}
+      <span
+        className={`
+          absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full border border-[var(--color-surface)]
+          ${isConnected ? 'bg-[var(--color-success)]' : 'bg-[var(--color-text-muted)]'}
+        `}
+        title={isConnected ? 'Socket.IO live connected' : 'Connecting to live updates…'}
+      />
     </Link>
   );
 };
