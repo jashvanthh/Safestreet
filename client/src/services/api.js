@@ -16,7 +16,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',               // Proxied to http://localhost:5000/api in dev
+  // In production (Render static site), VITE_API_URL must be set to the
+  // Web Service URL e.g. https://safestreet-api.onrender.com/api
+  // In local dev, falls back to '/api' which is proxied by vite.config.js
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
