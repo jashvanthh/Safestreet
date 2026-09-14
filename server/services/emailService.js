@@ -122,9 +122,10 @@ const sendReportConfirmationEmail = async (user, incident) => {
 
   try {
     await transporter.sendMail({
-      from:    process.env.EMAIL_FROM || process.env.DIGEST_FROM_EMAIL || `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
       to:      user.email,
       subject,
+      text:    `Hello ${user.name || 'Resident'},\n\nThank you for helping keep your community safe. Your report "${incident.title}" has been successfully logged on SafeStreet.\n\nCategory: ${categoryName}\nStatus: REPORTED\nDescription: ${incident.description}\n\nView Incident: ${incidentUrl}`,
       html,
     });
     console.log(`✅ Report confirmation email dispatched to ${user.email}`);
@@ -216,9 +217,10 @@ const sendStatusUpdateEmail = async (user, incident, newStatus) => {
 
   try {
     await transporter.sendMail({
-      from:    process.env.EMAIL_FROM || process.env.DIGEST_FROM_EMAIL || `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
       to:      user.email,
       subject,
+      text:    `Hello ${user.name || 'Resident'},\n\nThe status of your reported incident "${incident.title}" has been updated to: ${newStatus.replace('_', ' ').toUpperCase()}.\n\nView Incident: ${incidentUrl}`,
       html,
     });
     console.log(`✅ Status update email dispatched to ${user.email} (Status: ${newStatus})`);
@@ -323,9 +325,10 @@ const sendAdminNewIncidentAlert = async (incident, reporter) => {
 
   try {
     await transporter.sendMail({
-      from:    process.env.EMAIL_FROM || process.env.DIGEST_FROM_EMAIL || `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
+      from:    `"SafeStreet Alerts" <${process.env.SMTP_USER}>`,
       to:      adminEmail,
       subject,
+      text:    `[Admin Alert] New Incident Reported: "${incident.title}"\n\nCategory: ${categoryName}\nCoordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}\nReporter: ${reporter?.name || 'Resident'} (${reporter?.email || 'N/A'})\nDescription: ${incident.description || 'No description'}\n\nReview on SafeStreet: ${adminUrl}`,
       html,
     });
     console.log(`🚨 Admin alert email dispatched to ${adminEmail} for incident: "${incident.title}"`);
