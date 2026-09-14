@@ -20,18 +20,16 @@ const nodemailer = require('nodemailer');
 
 // ── Brevo (Sendinblue) SDK ────────────────────────────────────────────────────
 // Free tier: 300 emails/day. Sends to ANY email without domain verification.
-let brevoApi = null;
+let brevoClient = null;
 if (process.env.BREVO_API_KEY && process.env.NODE_ENV !== 'test') {
-  const SibApiV3Sdk = require('@getbrevo/brevo');
-  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-  apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
-  brevoApi = apiInstance;
+  const { BrevoClient } = require('@getbrevo/brevo');
+  brevoClient = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 }
 
 // ── Resend SDK ────────────────────────────────────────────────────────────────
-// Free tier: 3000 emails/month. Requires domain to send to other emails.
+// Free tier: 3000 emails/month. Secondary fallback if Brevo is not set or fails.
 let resendClient = null;
-if (!brevoApi && process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
+if (process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
   const { Resend } = require('resend');
   resendClient = new Resend(process.env.RESEND_API_KEY);
 }
@@ -61,17 +59,24 @@ const isDeliverableEmail = (email) => {
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   // ── 1. Brevo HTTP API (preferred — sends to any email, no domain needed) ─────
-  if (brevoApi) {
-    const SibApiV3Sdk = require('@getbrevo/brevo');
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-    const senderName  = process.env.BREVO_SENDER_NAME  || 'SafeStreet';
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'noreply@safestreet.app';
-    sendSmtpEmail.sender  = { name: senderName, email: senderEmail };
-    sendSmtpEmail.to      = [{ email: to }];
-    sendSmtpEmail.subject = subject;
-    sendSmtpEmail.htmlContent = html;
-    sendSmtpEmail.textContent = text;
-    return brevoApi.sendTransacEmail(sendSmtpEmail);
+  if (brevoClient) {
+    try {
+      const senderName  = process.env.BREVO_SENDER_NAME  || 'SafeStreet';
+      const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'kjashwanthreddy2001@gmail.com';
+      return await brevoClient.transactionalEmails.sendTransacEmail({
+        subject,
+        htmlContent: html,
+        textContent: text,
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: to }],
+      });
+    } catch (brevoErr) {
+      console.warn('⚠️ Brevo delivery failed:', brevoErr.message);
+      if (!resendClient && (!process.env.SMTP_HOST || !process.env.SMTP_USER)) {
+        throw brevoErr;
+      }
+      console.log('🔄 Falling back to secondary email provider...');
+    }
   }
 
   // ── 2. Resend HTTPS API (fallback — needs domain for non-owner addresses) ─────
