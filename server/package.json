@@ -25,6 +25,7 @@
     "express-rate-limit": "^8.7.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.6.0",
     "mongoose": "^8.0.3",
     "multer": "^2.3.0",
     "node-cron": "^4.6.0",
